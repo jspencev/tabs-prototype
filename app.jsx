@@ -5,7 +5,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "underlord": true,
   "timeline": false,
   "ulWidth": 320,
-  "tlHeight": 232,
+  "tlHeight": 300,
   "density": "comfortable",
   "accent": "#A3A3EE",
   "contextBar": false
@@ -49,6 +49,16 @@ function App() {
   const mistTimer = useRef(null);
   const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const castRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+
+  // ---- guided demo state ----
+  const [view, setView] = useState("home");        // 'home' | 'editor'
+  const [videoAdded, setVideoAdded] = useState(false);
+  const [fillersRemoved, setFillersRemoved] = useState(false);
+  const [fillerStriking, setFillerStriking] = useState(false);
+  const [chaptersAdded, setChaptersAdded] = useState(false);
+  const [rearranged, setRearranged] = useState(false);
+  const [planPhase, setPlanPhase] = useState(null); // null | 'proposed' | 'revised' | 'done'
+  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged };
 
   const ulOpen = t.underlord;
   const tlOpen = t.timeline;
@@ -188,9 +198,105 @@ function App() {
     setPanes((ps) => ps.map((p) => p.tabIds.includes(id) ? { ...p, activeId: id } : p));
   };
 
-  // ===== drawer (sidebar) chat =====
-  const drawerSend = (text) => runSend(text, setConvo, setThinking, timer);
+  // ===== drawer (sidebar) chat — routes to scripted beats =====
+  const focusScript = () => openSurface(panes[panes.length - 1].id, "script");
+
+  const runRearrangePlan = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    setPlanUpdated(false);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      ensurePlanTab();
+      setGoPulse(true);
+      setConvo((c) => [...c,
+        { role: "ai", text: "Here’s a plan to restructure the story — I opened it as its own tab. Tell me what to change, or press Go." },
+        { role: "ai", artifact: { id: "plan", name: window.DEMO.plan.initial.title, sub: "Markdown · opened as a tab" } },
+      ]);
+      setPlanPhase("proposed");
+    }, 1500);
+  };
+  const revisePlan = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setPlanUpdated(true);
+      setGoPulse(true);
+      if (planId.current) setPanes((ps) => ps.map((p) => p.tabIds.includes(planId.current) ? { ...p, activeId: planId.current } : p));
+      setConvo((c) => [...c, { role: "ai", text: "Good call — updated the plan on the right." }]);
+      setPlanPhase("revised");
+    }, 1300);
+  };
+  const onPlanGo = () => {
+    setGoPulse(false);
+    setPlanPhase("done");
+    focusScript();
+    setConvo((c) => [...c, { role: "ai", text: "Running it now — restructuring the story and cutting the script to match." }]);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setRearranged(true);
+      setConvo((c) => [...c, { role: "ai", text: "Done — the cut now opens on the thesis and groups the listing tactics together." }]);
+    }, 1300);
+  };
+  const runChapters = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    focusScript();
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setChaptersAdded(true);
+      setConvo((c) => [...c, { role: "ai", text: "Added 4 chapters: Big is Your Engine, Boutique is Your Edge, Listing Resources, Open House Script." }]);
+    }, 1400);
+  };
+
+  const drawerSend = (text) => {
+    const t = text.toLowerCase().trim();
+    if (planPhase === "proposed" || planPhase === "revised") {
+      if (/^(go|approve|run it|looks good|do it|ship it)/.test(t)) { setConvo((c) => [...c, { role: "user", text }]); onPlanGo(); return; }
+      revisePlan(text); return;
+    }
+    if (/(rearrange|reorder|restructure|reorganize|move the story|move things around|tighten the story)/.test(t)) { runRearrangePlan(text); return; }
+    if (/chapter/.test(t)) { runChapters(text); return; }
+    runSend(text, setConvo, setThinking, timer);
+  };
   const drawerChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setConvo); else drawerSend(text); };
+
+  // ===== guided demo: entry from Chatty Home =====
+  const enterEditor = ({ prompt }) => {
+    setView("editor");
+    setTweak("underlord", true);
+    setConvo([
+      { role: "user", text: prompt },
+      { role: "ai", text: "Adding your recording to the project…" },
+    ]);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setVideoAdded(true);
+      setConvo((c) => [...c, { role: "ai", text: "Okay — I’ve added that to your project. What would you like to do next?" }]);
+    }, 900);
+  };
+
+  // ===== guided demo: skills (Beat 2) =====
+  const onSkill = (id) => {
+    if (id === "fillers") runFillerBeat();
+  };
+  const runFillerBeat = () => {
+    openSurface(panes[panes.length - 1].id, "script");
+    setConvo((c) => [...c, { role: "user", text: "Remove filler words" }]);
+    setThinking(true);
+    setFillerStriking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setFillerStriking(false);
+      setFillersRemoved(true);
+      setConvo((c) => [...c, { role: "ai", text: "Removed 9 filler words — ums, uhs, and false starts. The transcript reads much tighter now." }]);
+    }, 1400);
+  };
 
   // ===== drawer chat history =====
   const archiveCurrent = (list) => {
@@ -214,9 +320,18 @@ function App() {
     setThinking(false);
   };
 
-  // ===== mist chat =====
-  const mistSend = (text) => { runSend(text, setMistConvo, setMistThinking, mistTimer); setMistDocked(true); };
-  const mistChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setMistConvo); else mistSend(text); };
+  // ===== mist chat (secondary surface — placeholder responses only) =====
+  const mistSend = (text) => {
+    setMistConvo((c) => [...c, { role: "user", text }]);
+    setMistDocked(true);
+    setMistThinking(true);
+    clearTimeout(mistTimer.current);
+    mistTimer.current = setTimeout(() => {
+      setMistThinking(false);
+      setMistConvo((c) => [...c, { role: "ai", text: "Hello, how are you doing?" }]);
+    }, 900);
+  };
+  const mistChip = (text) => mistSend(text);
   const closeMist = () => { setMistOpen(false); setMistDocked(false); };
   const dockMist = () => {
     setConvo(mistConvo);
@@ -239,6 +354,7 @@ function App() {
 
   useEffect(() => {
     const h = (e) => {
+      if (view !== "editor") return;
       const el = document.activeElement;
       const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
       if (e.key === "/" && !typing) {
@@ -257,7 +373,7 @@ function App() {
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [mistOpen]);
+  }, [mistOpen, view]);
 
   // accent override
   useEffect(() => {
@@ -267,11 +383,13 @@ function App() {
   const on = {
     activate, close, openSurface, split: splitFromActive, splitDrop, moveTab,
     moveTabBefore: moveTab,
-    planUpdated, onGo: () => runGo(setConvo), goPulse,
+    planUpdated, onGo: onPlanGo, goPulse,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
   const activePane = panes[panes.length - 1];
+
+  if (view === "home") return <Home onStart={enterEditor}/>;
 
   return (
     <div className={"app density-" + t.density}>
@@ -296,11 +414,12 @@ function App() {
         <Underlord convo={convo} thinking={thinking} onSend={drawerSend}
                    onOpenArtifact={onOpenArtifact} onChip={drawerChip}
                    onNewChat={newChat} history={chatHistory} onSelectHistory={selectChat}
+                   onSkill={onSkill} onPlanGo={onPlanGo}
                    onClose={() => setTweak("underlord", false)}/>
 
         <div className="workspace">
           <div className="ws-main">
-            <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on}/>
+            <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
             {t.contextBar && <FloatBar onUnderlord={() => setTweak("underlord", true)}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
           </div>

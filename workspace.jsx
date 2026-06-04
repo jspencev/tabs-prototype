@@ -37,7 +37,7 @@ function Tab({ tab, active, paneId, density, drag, on }) {
   );
 }
 
-function Pane({ pane, tabsById, isSplit, density, drag, on }) {
+function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
   const [menu, setMenu] = useState(false);
   const activeTab = tabsById[pane.activeId] || tabsById[pane.tabIds[0]];
   const [splitOver, setSplitOver] = useState(false);
@@ -101,7 +101,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on }) {
         onDragLeave={() => setSplitOver(false)}
         onDrop={(e) => { if (splitOver) { e.preventDefault(); on.splitDrop(drag.id, pane.id); } setSplitOver(false); drag.set(null, null); }}>
         {activeTab && (
-          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse}/>
+          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo}/>
         )}
         {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(163,163,238,.14)",borderLeft:"2px solid var(--blurple-400)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
           <span style={{font:"600 12px/1 var(--font-sans)",color:"#bdbdfb"}}>Split here</span>
@@ -111,7 +111,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on }) {
   );
 }
 
-function Workspace({ panes, tabsById, density, on }) {
+function Workspace({ panes, tabsById, density, on, demo }) {
   const [dragId, setDragId] = useState(null);
   const [dragFrom, setDragFrom] = useState(null);
   const [over, setOver] = useState(null);
@@ -130,7 +130,7 @@ function Workspace({ panes, tabsById, density, on }) {
     <div className="panes">
       {panes.map((p, i) => (
         <Pane key={p.id} pane={p} tabsById={tabsById} isSplit={panes.length > 1}
-              density={density} drag={drag} on={on}/>
+              density={density} drag={drag} on={on} demo={demo}/>
       ))}
     </div>
   );

@@ -11,13 +11,32 @@ const relTime = (ts) => {
   return Math.floor(h / 24) + "d";
 };
 
-function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onClose }) {
+function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onClose }) {
   const [draft, setDraft] = useState("");
   const [histOpen, setHistOpen] = useState(false);
   const [histPos, setHistPos] = useState({ top: 0, right: 0 });
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const [skillFilter, setSkillFilter] = useState("");
+  const [skillsPos, setSkillsPos] = useState({ left: 0, bottom: 0 });
   const bodyRef = useRef(null);
   const taRef = useRef(null);
   const histRef = useRef(null);
+  const composerRef = useRef(null);
+
+  const SKILLS = (window.DEMO && window.DEMO.skills) || [];
+  const filteredSkills = SKILLS.filter((s) => s.label.toLowerCase().includes(skillFilter.toLowerCase()));
+
+  const openSkills = () => {
+    const r = composerRef.current && composerRef.current.getBoundingClientRect();
+    if (r) setSkillsPos({ left: r.left, bottom: window.innerHeight - r.top + 6 });
+    setSkillsOpen(true);
+  };
+  const selectSkill = (skill) => {
+    setSkillsOpen(false);
+    setDraft("");
+    if (taRef.current) taRef.current.style.height = "auto";
+    if (skill && skill.fn === "fillers" && onSkill) onSkill("fillers");
+  };
 
   const toggleHist = () => {
     if (histOpen) { setHistOpen(false); return; }
@@ -37,11 +56,18 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
     if (taRef.current) taRef.current.style.height = "auto";
   };
   const onKey = (e) => {
+    if (skillsOpen) {
+      if (e.key === "Escape") { e.preventDefault(); setSkillsOpen(false); return; }
+      if (e.key === "Enter") { e.preventDefault(); if (filteredSkills[0]) selectSkill(filteredSkills[0]); return; }
+    }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
   const grow = (e) => {
     const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 90) + "px";
-    setDraft(el.value);
+    const v = el.value;
+    setDraft(v);
+    if (v.startsWith("/")) { setSkillFilter(v.slice(1)); if (!skillsOpen) openSkills(); }
+    else if (skillsOpen) setSkillsOpen(false);
   };
 
   const empty = convo.length === 0 && !thinking;
@@ -115,13 +141,27 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
         )}
       </div>
 
+      {skillsOpen && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setSkillsOpen(false)}></div>
+          <div className="menu skills-menu" style={{ position:"fixed", left: skillsPos.left, bottom: skillsPos.bottom }}>
+            <div className="mlabel">Skills</div>
+            {filteredSkills.length > 0 ? filteredSkills.map((s) => (
+              <div className="mi" key={s.label} onClick={() => selectSkill(s)}>
+                <Icons.bulb/> <span className="skill">{s.label}</span>
+              </div>
+            )) : <div className="mi disabled"><span className="skill">No matching skills</span></div>}
+          </div>
+        </>
+      )}
+
       <div className="ul-composer">
-        <div className="composer-box">
-          <textarea ref={taRef} rows="1" value={draft} placeholder="Ask Underlord to make an edit…"
+        <div className="composer-box" ref={composerRef}>
+          <textarea ref={taRef} rows="1" value={draft} placeholder="Ask Underlord to make an edit…  (type / for skills)"
                     onChange={grow} onKeyDown={onKey}/>
           <button className="send" disabled={!draft.trim()} onClick={send}><Icons.arrowUp/></button>
         </div>
-        <div className="ul-hint">Press <b>/</b> anywhere to summon Underlord</div>
+        <div className="ul-hint">Type <b>/</b> for skills</div>
       </div>
     </aside>
   );
