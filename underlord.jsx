@@ -114,6 +114,13 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
         {convo.map((m, k) => (
           <div className={"msg " + (m.role === "user" ? "user" : "ai")} key={k}>
             {m.role === "ai" && <span className="who">Underlord</span>}
+            {m.file && (
+              <div className="ctx-file">
+                <span className="ti"><Icons.video/></span>
+                <span className="nm">{m.file.name}</span>
+                {m.file.meta && <span className="meta">{m.file.meta}</span>}
+              </div>
+            )}
             {m.text && <div className="bubble">{m.text}</div>}
             {m.artifact && (
               <div className="artifact" onClick={() => onOpenArtifact(m.artifact)}>

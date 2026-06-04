@@ -9,12 +9,12 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 ## Beat 1 — Entry (Chatty Home → editor)
 **Do:**
 1. On Chatty Home, click the paperclip (or drag a file onto the box). The recording "uploads" (progress → Ready).
-2. Type: `Rough cut this recording for me` and click **Get started**.
-3. You land in the editor on the **Video** tab. Underlord automatically adds the recording: the canvas pops from empty state to the video, and it says "Okay — I've added that to your project. What would you like to do next?" (no action needed from you here).
+2. Click **Get started** (no need to type anything).
+3. You land in the editor on the **Video** tab. The first thing in the Underlord chat is the **file context pill** for the recording you brought in. Underlord automatically adds it: the canvas pops from empty state to the video, and it says "Okay — I've added that to your project. What would you like to do next?" (no action needed from you here).
 
-**Shows:** Chatty Home ("What can I help you with?") → editor; the canvas swaps from empty state to the real video frame on its own.
+**Shows:** Chatty Home ("What can I help you with?") → editor; the chat opens with the attached-file pill (no typed instruction); the canvas swaps from empty state to the real video frame on its own.
 
-**Say:** "You start where you already are — the home hub. You bring a file and your intent in plain language, and Underlord drops you straight into the editor with the recording already added. Notice the canvas was empty a second ago; now the video's in — and it hands control back to you: what next?"
+**Say:** "You start where you already are — the home hub. You just bring a file — no prompt needed — and Underlord drops you straight into the editor. It shows the file you handed it right there in the chat, adds it for you, and hands control back: what next?"
 
 ---
 

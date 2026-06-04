@@ -128,6 +128,15 @@ button { font-family: inherit; cursor: pointer; }
 .artifact .meta .sub { font:400 10.5px/1.3 var(--font-sans); color: rgba(255,248,244,.5); margin-top:2px; }
 .artifact .open { margin-left:auto; font:500 10px/1 var(--font-sans); color: var(--blurple-300); }
 
+/* attached file context pill (chat) */
+.ctx-file { display:inline-flex; align-items:center; gap:8px; max-width:90%; padding:7px 11px;
+  background: rgba(255,248,244,.06); border:1px solid rgba(255,248,244,.14); border-radius:10px; }
+.ctx-file .ti { display:flex; }
+.ctx-file .ti svg { width:15px; height:15px; color:#bdbdfb; }
+.ctx-file .nm { font:500 12px/1.2 var(--font-sans); color: var(--cream-100); letter-spacing:-.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ctx-file .meta { flex:0 0 auto; font:500 10.5px/1 var(--font-sans); color: rgba(255,248,244,.5); }
+
 /* "Add to project" action card (Beat 1) */
 .ul-add { margin-top:2px; display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer;
   background: rgba(255,248,244,.04); border:1px solid rgba(255,248,244,.12); border-radius:10px;

@@ -158,7 +158,7 @@ function App() {
     planId.current = nt.id;
     setTabsById((m) => ({ ...m, [nt.id]: nt }));
     setPanes((ps) => {
-      const target = ps[ps.length - 1];
+      const target = ps[0];
       return ps.map((p) => p.id === target.id
         ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p);
     });
@@ -266,11 +266,14 @@ function App() {
   const drawerChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setConvo); else drawerSend(text); };
 
   // ===== guided demo: entry from Chatty Home =====
-  const enterEditor = ({ prompt }) => {
+  const enterEditor = ({ prompt, file }) => {
     setView("editor");
     setTweak("underlord", true);
+    const D = window.DEMO || {};
+    const userMsg = { role: "user", file: { name: (file && file.name) || D.fileName, meta: D.duration } };
+    if (prompt) userMsg.text = prompt;
     setConvo([
-      { role: "user", text: prompt },
+      userMsg,
       { role: "ai", text: "Adding your recording to the project…" },
     ]);
     clearTimeout(timer.current);
@@ -302,7 +305,7 @@ function App() {
   const archiveCurrent = (list) => {
     if (convo.length === 0) return list;
     const firstUser = convo.find((m) => m.role === "user");
-    const title = firstUser && firstUser.text ? firstUser.text : "Chat";
+    const title = (firstUser && (firstUser.text || (firstUser.file && firstUser.file.name))) || "Chat";
     return [{ id: uid("chat"), title, ts: Date.now(), convo }, ...list];
   };
   const newChat = () => {

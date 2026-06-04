@@ -40,7 +40,7 @@ function Home({ onStart }) {
 
   const submit = () => {
     if (!canSubmit) return;
-    onStart({ prompt: prompt.trim() || "Rough cut this recording for me", file });
+    onStart({ prompt: prompt.trim(), file });
   };
 
   return (
