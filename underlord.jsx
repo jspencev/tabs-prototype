@@ -11,7 +11,7 @@ const relTime = (ts) => {
   return Math.floor(h / 24) + "d";
 };
 
-function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onClose }) {
+function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onReview, onClose }) {
   const [draft, setDraft] = useState("");
   const [histOpen, setHistOpen] = useState(false);
   const [histPos, setHistPos] = useState({ top: 0, right: 0 });
@@ -135,6 +135,15 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
             {m.chips && (
               <div className="chips">
                 {m.chips.map((c, j) => <button className="chip" key={j} onClick={() => onChip(c)}>{c}</button>)}
+              </div>
+            )}
+            {m.review && (
+              <div className="msg-actions">
+                <button className="msg-action" title="Restore project to before this step"><Icons.revert/> Revert</button>
+                <button className="msg-action go" onClick={onReview}>Review changes</button>
+                <span className="sp"></span>
+                <button className="msg-action icon" title="Good response"><Icons.thumbUp/></button>
+                <button className="msg-action icon" title="Bad response"><Icons.thumbDn/></button>
               </div>
             )}
           </div>

@@ -89,6 +89,43 @@ const DEMO = {
     },
   },
 
+  // Beat 3 review: a faked before/after diff. Each key moment is one logical change
+  // that knows its position in BOTH timelines, so it renders at different spots per view.
+  // kind: move | delete | insert | modify. delete -> filled block in prev, marker in current.
+  // insert -> marker in prev, filled block in current.
+  reviewDiff: {
+    durationSec: 1250,       // after / current timeline (20:50)
+    prevDurationSec: 1310,   // before timeline (longer — implies removed content)
+    afterRef: "a1b2c3d4e5f6",
+    beforeRef: "9f8e7d6c5b4a",
+    keyMoments: [
+      { id: "m1", label: "Boutique thesis moved up", kind: "move",
+        prev: { start: 250, end: 285 }, current: { start: 0, end: 35 },
+        changes: [
+          "Pulled the “boutique is your edge” thesis to the very top.",
+          "Cut now opens on the core message instead of the Big setup.",
+        ] },
+      { id: "m2", label: "Title card added", kind: "insert",
+        prev: { start: 250, end: 250 }, current: { start: 35, end: 47 },
+        changes: [
+          "Added a 12s title card introducing the thesis.",
+          "New lower-third over the opening line.",
+        ] },
+      { id: "m3", label: "Intro aside deleted", kind: "delete",
+        prev: { start: 41, end: 95 }, current: { start: 60, end: 60 },
+        changes: [
+          "Deleted a redundant intro aside (~54s).",
+          "Removed the repeated “Big is your engine” setup.",
+        ] },
+      { id: "m4", label: "Compass One walkthrough tightened", kind: "modify",
+        prev: { start: 360, end: 470 }, current: { start: 300, end: 395 },
+        changes: [
+          "Grouped the Compass One / listing-resources tactics together.",
+          "Trimmed two “you know” asides mid-paragraph.",
+        ] },
+    ],
+  },
+
   // Beat 2: the "/" skills menu. Only `fn:"fillers"` is wired; the rest are decorative.
   skills: [
     { label: "Remove filler words", fn: "fillers" },

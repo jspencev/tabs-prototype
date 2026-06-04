@@ -1,5 +1,5 @@
 // surfaces.jsx — the content rendered inside each tab
-const { useState } = React;
+const { useState, useEffect } = React;
 
 // Shared AI-effect pill — identical style/behavior in the canvas bar and the
 // VideoProperties panel. `on` = applied, `busy` = processing.
@@ -20,7 +20,7 @@ window.EffectPill = EffectPill;
 // maps an effect key to its "processing" flag on the vid state
 const EFFECT_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy" };
 
-function VideoSurface({ demo }) {
+function VideoSurface({ demo, onSelect }) {
   const added = !!(demo && demo.videoAdded);
   const [sel, setSel] = useState(null); // null | 'video' | 'scene'
   const [sc, setSc] = useState({
@@ -36,6 +36,10 @@ function VideoSurface({ demo }) {
   const [ssPop, setSsPop] = useState(null); // { rect } when the Studio Sound intensity popover is open
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
+
+  // Report the current canvas selection up so the contextual toolbar can adapt.
+  useEffect(() => { if (onSelect) onSelect(sel); }, [sel]);
+  useEffect(() => () => { if (onSelect) onSelect(null); }, []);
 
   // Eye Contact: apply -> async processing (spinner) -> applied; click again removes.
   const applyEffect = (key) => {
@@ -197,6 +201,118 @@ function ScriptSurface({ demo }) {
   );
 }
 
+// ── Review changes ───────────────────────────────────────────────────────────
+const RV_PREROLL = 3;
+const fmtTC = (s) => {
+  s = Math.max(0, Math.round(s));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+};
+const rvPct = (v, dur) => (dur > 0 ? Math.max(0, Math.min(100, (v / dur) * 100)) : 0);
+
+function ReviewSurface() {
+  const D = window.DEMO || {};
+  const diff = D.reviewDiff || { durationSec: 0, prevDurationSec: 0, keyMoments: [] };
+  const moments = diff.keyMoments || [];
+  const [view, setView] = useState("current");   // 'current' | 'prev' | 'diff'
+  const [selected, setSelected] = useState(0);
+
+  const isPrev = view === "prev";
+  const isDiff = view === "diff";
+  const dur = isPrev ? diff.prevDurationSec : diff.durationSec;
+  const rangeOf = (km) => (isPrev ? km.prev : km.current);
+
+  const sel = moments[selected] || null;
+  const selRange = sel ? rangeOf(sel) : { start: 0, end: 0 };
+  const seekTime = Math.max(0, selRange.start - RV_PREROLL);
+
+  const refLabel = isDiff
+    ? moments.length + " changes"
+    : (isPrev ? "before · " + (diff.beforeRef || "").slice(0, 7)
+              : "after · " + (diff.afterRef || "").slice(0, 7));
+
+  const TABS = [["current", "Current"], ["prev", "Prev"], ["diff", "Show diff"]];
+
+  const frame = (
+    <img className="rv-frame" src="video-thumb.png" alt="Video frame"/>
+  );
+  const placeholder = (label) => (
+    <div className={"rv-ph " + (label === "Removed" ? "removed" : "added")}>
+      <div className="rv-ph-mark">{label === "Removed" ? <Icons.x/> : <Icons.plus/>}</div>
+      <div className="rv-ph-tx">{label}</div>
+    </div>
+  );
+  const side = (which) => {
+    const kind = sel ? sel.kind : "modify";
+    if (which === "before") return kind === "insert" ? placeholder("Added") : frame;
+    return kind === "delete" ? placeholder("Removed") : frame;
+  };
+
+  return (
+    <div className="surf-review">
+      <div className="rv-bar">
+        <div className="rv-toggle">
+          {TABS.map(([id, label]) => (
+            <button key={id} className={"rv-tab" + (view === id ? " on" : "")}
+                    onClick={() => setView(id)}>{label}</button>
+          ))}
+        </div>
+        <span className="sp"></span>
+        <span className="rv-ref" title={isPrev ? diff.beforeRef : diff.afterRef}>{refLabel}</span>
+      </div>
+
+      {isDiff ? (
+        <div className="rv-diff">
+          <div className="rv-stage"><span className="rv-badge">Before</span>{side("before")}</div>
+          <div className="rv-stage"><span className="rv-badge">After</span>{side("after")}</div>
+        </div>
+      ) : (
+        <div className="rv-stage solo">
+          <span className="rv-badge">{isPrev ? "Before" : "After"}</span>
+          {frame}
+        </div>
+      )}
+
+      <div className="rv-controls">
+        <button className="rv-play" title="Play"><Icons.play/></button>
+        <span className="rv-tc">{fmtTC(seekTime)}</span>
+        <div className="rv-timeline">
+          <div className="rv-scrub">
+            <i className="rv-fill" style={{ width: rvPct(seekTime, dur) + "%" }}></i>
+            <span className="rv-head" style={{ left: rvPct(seekTime, dur) + "%" }}></span>
+          </div>
+          <div className="rv-track" title="Key moments — click to jump">
+            {moments.map((km, i) => {
+              const r = rangeOf(km);
+              const isMarker = r.end <= r.start;
+              const left = rvPct(r.start, dur);
+              const width = isMarker ? null : rvPct(r.end - r.start, dur);
+              return (
+                <button key={km.id}
+                        className={"km-window km-" + km.kind + (i === selected ? " sel" : "") + (isMarker ? " marker" : "")}
+                        style={{ left: left + "%", width: width != null ? width + "%" : undefined }}
+                        aria-label={km.label}
+                        title={km.label}
+                        onClick={() => setSelected(i)}></button>
+              );
+            })}
+          </div>
+        </div>
+        <span className="rv-tc dim">{fmtTC(dur)}</span>
+      </div>
+
+      {sel && (
+        <div className="rv-changes">
+          <div className="rv-ch-head">
+            <span className={"rv-dot km-" + sel.kind}></span>{sel.label}
+            <span className="rv-ch-tc">{fmtTC(rangeOf(sel).start)}</span>
+          </div>
+          <ul>{sel.changes.map((c, i) => <li key={i}>{c}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Placeholder({ icon, title, body }) {
   const I = Icons[icon] || Icons.media;
   return (
@@ -209,10 +325,11 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo}/>;
+    case "video":  return <VideoSurface demo={demo} onSelect={onSelect}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
+    case "review": return <ReviewSurface/>;
     case "script": return <ScriptSurface demo={demo}/>;
     case "media":  return <Placeholder icon="media" title="Media library" body="Drag clips, images and recordings here. This whole surface is just a tab now."/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
@@ -223,4 +340,4 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo }) {
   }
 }
 
-Object.assign(window, { VideoSurface, PlanDoc, ScriptSurface, Placeholder, SurfaceContent });
+Object.assign(window, { VideoSurface, PlanDoc, ReviewSurface, ScriptSurface, Placeholder, SurfaceContent });

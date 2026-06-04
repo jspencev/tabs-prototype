@@ -167,6 +167,18 @@ button { font-family: inherit; cursor: pointer; }
   display:inline-flex; align-items:center; transition: background var(--dur-fast), border-color var(--dur-fast); }
 .chip:hover { background: var(--accent-bg-secondary); border-color: var(--accent-border); }
 
+/* end-of-turn action bar (Revert · Review changes · feedback) */
+.msg-actions { display:flex; align-items:center; gap:6px; margin-top:6px; }
+.msg-action { height:26px; padding:0 9px; border-radius:7px; border:1px solid rgba(255,248,244,.14);
+  background: rgba(255,248,244,.05); color: var(--cream-100); font:500 11px/1 var(--font-sans);
+  display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast); }
+.msg-action:hover { background: var(--accent-bg-secondary); border-color: var(--accent-border); }
+.msg-action svg { width:13px; height:13px; }
+.msg-action.go { background: var(--accent-bg-secondary); border-color: var(--accent-border); color: var(--blurple-300); }
+.msg-action.icon { width:26px; padding:0; justify-content:center; color: rgba(255,248,244,.6); }
+.msg-actions .sp { flex:1; }
+
 /* composer */
 .ul-composer { padding: 10px 14px 14px; border-top:1px solid rgba(255,248,244,.06); }
 .composer-box { background: rgba(255,248,244,.06); border:1px solid rgba(255,248,244,.15); border-radius:12px;

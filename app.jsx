@@ -8,7 +8,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "tlHeight": 300,
   "density": "comfortable",
   "accent": "#A3A3EE",
-  "contextBar": false
+  "contextBar": true
 }/*EDITMODE-END*/;
 
 let _seq = 100;
@@ -39,6 +39,7 @@ function App() {
   const [goPulse, setGoPulse] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const planId = useRef(null);
+  const reviewId = useRef(null);
   const timer = useRef(null);
 
   // ---- ephemeral mist chat (summoned by "/") — its own conversation ----
@@ -58,6 +59,7 @@ function App() {
   const [chaptersAdded, setChaptersAdded] = useState(false);
   const [rearranged, setRearranged] = useState(false);
   const [planPhase, setPlanPhase] = useState(null); // null | 'proposed' | 'revised' | 'done'
+  const [selection, setSelection] = useState(null); // null | 'video' | 'scene' — current canvas selection
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged };
 
   const ulOpen = t.underlord;
@@ -71,6 +73,7 @@ function App() {
     const tab = tabsById[tabId];
     if (tab && !tab.closeable) return;
     if (tabId === planId.current) planId.current = null;
+    if (tabId === reviewId.current) reviewId.current = null;
     setPanes((ps) => {
       let next = ps.map((p) => {
         if (!p.tabIds.includes(tabId)) return p;
@@ -165,6 +168,23 @@ function App() {
     return nt.id;
   };
 
+  // Open (or focus) the Review changes tab in the left pane.
+  const openReview = () => {
+    if (reviewId.current && tabsById[reviewId.current]) {
+      setPanes((ps) => ps.map((p) => p.tabIds.includes(reviewId.current) ? { ...p, activeId: reviewId.current } : p));
+      return reviewId.current;
+    }
+    const nt = makeTab("review", { label: "Review changes" });
+    reviewId.current = nt.id;
+    setTabsById((m) => ({ ...m, [nt.id]: nt }));
+    setPanes((ps) => {
+      const target = ps[0];
+      return ps.map((p) => p.id === target.id
+        ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p);
+    });
+    return nt.id;
+  };
+
   // Generic simulated Underlord send — operates on whichever chat's list/busy
   // setters are passed in, so the drawer and the mist stay independent.
   const runSend = (text, setList, setBusy, timerRef) => {
@@ -238,7 +258,7 @@ function App() {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setRearranged(true);
-      setConvo((c) => [...c, { role: "ai", text: "Done — the cut now opens on the thesis and groups the listing tactics together." }]);
+      setConvo((c) => [...c, { role: "ai", text: "Done — the cut now opens on the thesis and groups the listing tactics together.", review: true }]);
     }, 1300);
   };
   const runChapters = (text) => {
@@ -347,6 +367,16 @@ function App() {
   const focusMist = () => {
     setTimeout(() => { const ta = document.querySelector(".mist-input textarea"); if (ta) ta.focus(); }, 60);
   };
+  // Open the mist as a prompt-only input centered at the dock (no cursor cast) —
+  // it visually takes the place of the contextual toolbar.
+  const openMistDock = () => {
+    castRef.current = null;
+    setMistConvo([]);
+    setMistThinking(false);
+    setMistDocked(false);
+    setMistOpen(true);
+    focusMist();
+  };
 
   // ===== "/" to summon the mist chat (Esc to dismiss) =====
   useEffect(() => {
@@ -387,10 +417,12 @@ function App() {
     activate, close, openSurface, split: splitFromActive, splitDrop, moveTab,
     moveTabBefore: moveTab,
     planUpdated, onGo: onPlanGo, goPulse,
+    onSelect: setSelection,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
   const activePane = panes[panes.length - 1];
+  const dockCenterX = (ulOpen ? t.ulWidth : 0) + (window.innerWidth - (ulOpen ? t.ulWidth : 0)) / 2;
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -417,13 +449,13 @@ function App() {
         <Underlord convo={convo} thinking={thinking} onSend={drawerSend}
                    onOpenArtifact={onOpenArtifact} onChip={drawerChip}
                    onNewChat={newChat} history={chatHistory} onSelectHistory={selectChat}
-                   onSkill={onSkill} onPlanGo={onPlanGo}
+                   onSkill={onSkill} onPlanGo={onPlanGo} onReview={openReview}
                    onClose={() => setTweak("underlord", false)}/>
 
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
-            {t.contextBar && <FloatBar onUnderlord={() => setTweak("underlord", true)}/>}
+            {t.contextBar && !mistOpen && <ContextBar selection={selection} dockCenterX={dockCenterX} onUnderlord={openMistDock}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
           </div>
           <Timeline open={tlOpen} height={t.tlHeight} onClose={() => setTweak("timeline", false)}/>
@@ -432,7 +464,7 @@ function App() {
 
       {mistOpen && (
         <EphemeralChat docked={mistDocked} castPos={castRef.current}
-                       dockCenterX={(ulOpen ? t.ulWidth : 0) + (window.innerWidth - (ulOpen ? t.ulWidth : 0)) / 2}
+                       dockCenterX={dockCenterX}
                        convo={mistConvo} thinking={mistThinking}
                        onSend={mistSend} onChip={mistChip} onOpenArtifact={onOpenArtifact}
                        onClose={closeMist} onDock={dockMist}/>
@@ -462,15 +494,31 @@ function TimelinePull({ onOpen }) {
   );
 }
 
-function FloatBar({ onUnderlord }) {
+// Selection-aware contextual toolbar. Toolsets mirror Descript's real canvas
+// toolbars (MediaRefToolbar for clips, CanvasSceneToolbar for scenes). Tools are
+// representative; only "Ask Underlord" is wired.
+const CTX_TOOLSETS = {
+  video: { label: "Video clip", tools: [
+    ["replace", "Replace"], ["fit", "Crop"], ["effects", "Effects"],
+    ["audio", "Studio Sound"], ["sparkle", "Eye Contact"], ["color", "Color"],
+  ] },
+  scene: { label: "Scene", tools: [
+    ["scenes", "Layout"], ["color", "Background"], ["effects", "Transition"], ["media", "Layers"],
+  ] },
+};
+CTX_TOOLSETS.none = { label: null, tools: CTX_TOOLSETS.scene.tools };
+
+function ContextBar({ selection, dockCenterX, onUnderlord }) {
+  const set = CTX_TOOLSETS[selection] || CTX_TOOLSETS.none;
   return (
-    <div className="float-bar">
-      <button className="fb"><Icons.scissors/> Split</button>
-      <button className="fb"><Icons.trim/> Trim</button>
-      <button className="fb"><Icons.text/> Text</button>
-      <button className="fb"><Icons.color/> Color</button>
+    <div className="ctx-bar" style={{ left: dockCenterX }}>
+      {set.label && <span className="ctx-label">{set.label}</span>}
+      {set.tools.map(([icon, label]) => {
+        const I = Icons[icon] || Icons.wand;
+        return <button className="fb" key={label} aria-label={label} data-tip={label}><I/></button>;
+      })}
       <div className="sep"></div>
-      <button className="fb ul" onClick={onUnderlord}><Icons.sparkle/> Ask Underlord <span className="kbd">/</span></button>
+      <button className="fb ul" onClick={onUnderlord} aria-label="Ask Underlord" data-tip="Ask Underlord"><Icons.robot/></button>
     </div>
   );
 }
@@ -488,7 +536,7 @@ function Tweaks({ t, setTweak }) {
       <TweakColor label="Underlord accent" value={t.accent}
         options={["#A3A3EE","#7A7ADC","#8841C6","#B84676"]} onChange={(v) => setTweak("accent", v)}/>
       <TweakSection label="Future direction"/>
-      <TweakToggle label="Floating context bar" value={t.contextBar} onChange={(v) => setTweak("contextBar", v)}/>
+      <TweakToggle label="Contextual toolbar" value={t.contextBar} onChange={(v) => setTweak("contextBar", v)}/>
     </TweaksPanel>
   );
 }

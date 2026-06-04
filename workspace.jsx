@@ -2,6 +2,7 @@
 const SURFACE_DEFS = {
   video:    { label: "Video",    icon: "video" },
   plan:     { label: "Plan",     icon: "doc" },
+  review:   { label: "Review changes", icon: "revert" },
   script:   { label: "Script",   icon: "script" },
   media:    { label: "Media",    icon: "media" },
   stock:    { label: "Stock",    icon: "stock" },
@@ -101,7 +102,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
         onDragLeave={() => setSplitOver(false)}
         onDrop={(e) => { if (splitOver) { e.preventDefault(); on.splitDrop(drag.id, pane.id); } setSplitOver(false); drag.set(null, null); }}>
         {activeTab && (
-          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo}/>
+          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect}/>
         )}
         {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(163,163,238,.14)",borderLeft:"2px solid var(--blurple-400)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
           <span style={{font:"600 12px/1 var(--font-sans)",color:"#bdbdfb"}}>Split here</span>

@@ -40,6 +40,14 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 
 **Say:** "For bigger moves it doesn't just do — it plans. You steer the plan in plain language, approve it, and only then does it execute. That's the trust model: review before run."
 
+**Then — review the changes:**
+1. When the run finishes, Underlord's closing message has an action bar: **Revert · Review changes · 👍 👎**. Click **Review changes**.
+2. A **Review changes** tab opens (in the left pane). Up top: a **Current | Prev | Show diff** toggle.
+3. The **changes track** under the player shows each key moment as a colored chip (move/modify/insert = filled, delete = marker). Click a chip — the player **seeks to that moment** and the bullets below update to what changed there.
+4. Toggle to **Prev** — the same moments shift to their old positions (longer timeline; the deleted bit shows as a filled block). Toggle to **Show diff** — **Before | After** side by side, with a "Removed"/"Added" placeholder on the side where the content doesn't exist.
+
+**Say:** "And after it runs, you don't have to take it on faith. Every change is a key moment you can click through — before, after, or side-by-side — so you see exactly what it did and where."
+
 ---
 
 ## Beat 4 — Add chapters
@@ -54,11 +62,13 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 
 ## Closer — it's still a real editor
 **Do:**
-1. Click the **Timeline** button (bottom center) to reveal the timeline.
+1. On the **Video** tab, click the clip, then click the scene chip — the floating **contextual toolbar** (bottom center) swaps its tools (clip tools vs scene tools), always keeping **Ask Underlord** on the right.
+2. Click **Ask Underlord** on that toolbar — it expands in place into the mist chat prompt at the same spot (the same place `/` docks to after you send). Press **Esc** to collapse back to the toolbar.
+3. Click the **Timeline** button (bottom center) to reveal the timeline.
 
-**Shows:** Descript-style scene strip (the four chapters as scenes) over A/V tracks (Neda / Ashley / Dialogue / Music / Titles), transport + Split + zoom.
+**Shows:** the toolbar adapting to selection; Underlord opening from the toolbar; Descript-style scene strip (the four chapters as scenes) over A/V tracks (Neda / Ashley / Dialogue / Music / Titles), transport + Split + zoom.
 
-**Say:** "And underneath the conversation it's still a full editor — scenes, tracks, the works. The tabs let you arrange exactly the surfaces you need, and Underlord is one keystroke away on any of them."
+**Say:** "The toolbar adapts to whatever you've selected — clip tools, scene tools — and Underlord is always right there. Click it and it becomes the prompt, docked exactly where the mist chat lands. Underneath the conversation it's still a full editor — scenes, tracks, the works."
 
 ---
 
@@ -68,3 +78,4 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 - Plan mode: any prompt containing rearrange / reorder / restructure; then any reply revises; "Go" executes.
 - Chapters: any prompt containing the word "chapters".
 - Mist chat: press `/` anywhere outside the composer to summon the floating Underlord (separate from the sidebar chat).
+- Contextual toolbar: bottom-center; tools change with canvas selection (clip vs scene); "Ask Underlord" expands it in place into the mist prompt at the dock.
