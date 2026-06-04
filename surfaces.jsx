@@ -1,6 +1,25 @@
 // surfaces.jsx — the content rendered inside each tab
 const { useState } = React;
 
+// Shared AI-effect pill — identical style/behavior in the canvas bar and the
+// VideoProperties panel. `on` = applied, `busy` = processing.
+function EffectPill({ on, busy, icon, label, value, onClick }) {
+  const I = Icons[icon] || Icons.sparkle;
+  const ref = React.useRef(null);
+  return (
+    <button ref={ref} className={"cpill btn" + (on ? " ai" : "")}
+            onClick={(e) => { e.stopPropagation(); onClick(ref.current ? ref.current.getBoundingClientRect() : null); }}>
+      {busy ? <span className="pspin"></span> : <I/>}
+      {busy ? "Applying…" : label}
+      {value != null && !busy && <span className="cval">{value}</span>}
+    </button>
+  );
+}
+window.EffectPill = EffectPill;
+
+// maps an effect key to its "processing" flag on the vid state
+const EFFECT_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy" };
+
 function VideoSurface({ demo }) {
   const added = !!(demo && demo.videoAdded);
   const [sel, setSel] = useState(null); // null | 'video' | 'scene'
@@ -10,10 +29,35 @@ function VideoSurface({ demo }) {
   });
   const [vid, setVid] = useState({
     clip: "MM 3.2.26 — full", scale: 100, rotation: 0, opacity: 100, radius: 0,
-    volume: 80, speed: 1, studioSound: true, eyeContact: false,
+    volume: 80, speed: 1,
+    studioSound: false, ssBusy: false, ssIntensity: 70,
+    eyeContact: false, ecBusy: false,
   });
+  const [ssPop, setSsPop] = useState(null); // { rect } when the Studio Sound intensity popover is open
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
+
+  // Eye Contact: apply -> async processing (spinner) -> applied; click again removes.
+  const applyEffect = (key) => {
+    const bk = EFFECT_BUSY[key];
+    if (vid[key]) { setVideo(key, false); return; }   // remove
+    if (vid[bk]) return;                                // already processing
+    setVideo(bk, true);
+    setTimeout(() => setVid((s) => ({ ...s, [bk]: false, [key]: true })), 2000);
+  };
+
+  // Studio Sound: apply -> processing -> applied, then auto-open the Intensity popover.
+  // Clicking the (already-on) pill re-opens the popover; Remove lives inside it.
+  const onStudioSound = (rect) => {
+    if (vid.studioSound) { setSsPop({ rect }); return; }   // re-open
+    if (vid.ssBusy) return;
+    setVideo("ssBusy", true);
+    setTimeout(() => {
+      setVid((s) => ({ ...s, ssBusy: false, studioSound: true }));
+      setSsPop({ rect });
+    }, 2000);
+  };
+  const removeStudioSound = () => { setVideo("studioSound", false); setSsPop(null); };
 
   return (
     <div className="surf-video">
@@ -24,14 +68,11 @@ function VideoSurface({ demo }) {
         </button>
         <span className="cpill">1920 × 1080</span>
         {sel === "video" && <>
-          <button className={"cpill btn" + (vid.studioSound ? " ai" : "")}
-                  onClick={(e) => { e.stopPropagation(); setVideo("studioSound", !vid.studioSound); }}>
-            <Icons.audio/> Studio Sound
-          </button>
-          <button className={"cpill btn" + (vid.eyeContact ? " ai" : "")}
-                  onClick={(e) => { e.stopPropagation(); setVideo("eyeContact", !vid.eyeContact); }}>
-            <Icons.sparkle/> Eye Contact
-          </button>
+          <EffectPill on={vid.studioSound} busy={vid.ssBusy} icon="audio" label="Studio Sound"
+                      value={vid.studioSound ? vid.ssIntensity + "%" : null}
+                      onClick={(rect) => onStudioSound(rect)}/>
+          <EffectPill on={vid.eyeContact} busy={vid.ecBusy} icon="sparkle" label="Eye Contact"
+                      onClick={() => applyEffect("eyeContact")}/>
         </>}
         <span className="sp"></span>
         <span className="zoom">Fit</span>
@@ -56,8 +97,24 @@ function VideoSurface({ demo }) {
           </div>
         )}
       </div>
-      {sel === "video" && <VideoProperties vid={vid} set={setVideo} onClose={() => setSel(null)} side="right"/>}
+      {sel === "video" && <VideoProperties vid={vid} set={setVideo} apply={applyEffect} onStudioSound={onStudioSound} onClose={() => setSel(null)} side="right"/>}
       {sel === "scene" && <SceneProperties sc={sc} set={setScene} onClose={() => setSel(null)}/>}
+
+      {sel === "video" && ssPop && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={() => setSsPop(null)}></div>
+          <div className="ss-pop" style={{ position: "fixed", top: ssPop.rect.bottom + 6, left: ssPop.rect.left }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="ssp-head"><Icons.audio/> Studio Sound <span className="ssp-val">{vid.ssIntensity}%</span></div>
+            <div className="ssp-row">
+              <span className="ssp-lab">Intensity</span>
+              <input className="pslider" type="range" min="0" max="100" step="1" value={vid.ssIntensity}
+                     onChange={(e) => setVideo("ssIntensity", Number(e.target.value))}/>
+            </div>
+            <button className="ssp-remove" onClick={removeStudioSound}>Remove Studio Sound</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

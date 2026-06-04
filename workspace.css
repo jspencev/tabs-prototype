@@ -90,6 +90,22 @@
   font:500 11px/24px var(--font-sans); color: var(--cream-100); display:inline-flex; align-items:center; gap:5px; }
 .cpill.ai { background: var(--accent-bg-secondary); color: var(--blurple-300); }
 .cpill svg{ width:12px;height:12px;}
+.cpill .pspin { width:11px; height:11px; flex:0 0 11px; border-radius:999px;
+  border:2px solid rgba(255,248,244,.3); border-top-color: var(--blurple-300);
+  animation: spin .7s linear infinite; display:inline-block; }
+.cpill .cval { margin-left:4px; font:600 10px/1 var(--font-mono); opacity:.7; }
+
+/* Studio Sound intensity popover */
+.ss-pop { z-index:50; min-width:240px; background: var(--surface-inverse);
+  border:1px solid rgba(255,248,244,.12); border-radius:10px; padding:10px; box-shadow: var(--elevation-10); }
+.ss-pop .ssp-head { display:flex; align-items:center; gap:7px; font:600 12px/1 var(--font-sans); color:#fff; margin-bottom:10px; }
+.ss-pop .ssp-head svg { width:14px; height:14px; color: var(--blurple-300); }
+.ss-pop .ssp-head .ssp-val { margin-left:auto; font:600 11px/1 var(--font-mono); color: rgba(255,248,244,.55); }
+.ss-pop .ssp-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.ss-pop .ssp-row .ssp-lab { font:500 11px/1 var(--font-sans); color: rgba(255,248,244,.6); min-width:56px; }
+.ss-pop .ssp-remove { width:100%; height:28px; border:0; border-radius:7px; background: rgba(255,248,244,.06);
+  color: var(--cream-100); font:500 11.5px/1 var(--font-sans); }
+.ss-pop .ssp-remove:hover { background: rgba(230,35,36,.18); color:#fff; }
 .canvas-bar .sp { flex:1; }
 .canvas-bar .zoom { font:500 11px/1 var(--font-mono); color: rgba(255,248,244,.5); }
 .stage-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:18px; min-height:0; }

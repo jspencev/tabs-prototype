@@ -273,7 +273,7 @@ function SceneProperties({ sc, set, onClose }) {
   );
 }
 
-function VideoProperties({ vid, set, onClose, side }) {
+function VideoProperties({ vid, set, apply, onStudioSound, onClose, side }) {
   return (
     <div className={"props" + (side === "left" ? " left" : "")} onClick={(e) => e.stopPropagation()}>
       <div className="props-h">
@@ -339,14 +339,11 @@ function VideoProperties({ vid, set, onClose, side }) {
         <div className="psec">
           <div className="lab">Underlord</div>
           <div className="prow">
-            <span className="plab">Studio Sound</span>
-            <button className={"ptoggle" + (vid.studioSound ? " on" : "")} title="Studio Sound"
-                    onClick={() => set("studioSound", !vid.studioSound)}><Icons.sparkle/></button>
-          </div>
-          <div className="prow">
-            <span className="plab">Eye Contact</span>
-            <button className={"ptoggle" + (vid.eyeContact ? " on" : "")} title="Eye Contact"
-                    onClick={() => set("eyeContact", !vid.eyeContact)}><Icons.sparkle/></button>
+            <EffectPill on={vid.studioSound} busy={vid.ssBusy} icon="audio" label="Studio Sound"
+                        value={vid.studioSound ? vid.ssIntensity + "%" : null}
+                        onClick={(rect) => onStudioSound(rect)}/>
+            <EffectPill on={vid.eyeContact} busy={vid.ecBusy} icon="sparkle" label="Eye Contact"
+                        onClick={() => apply("eyeContact")}/>
           </div>
         </div>
 
