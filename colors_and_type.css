@@ -1,0 +1,471 @@
+/* =========================================================
+   Descript Design System — Colors & Typography
+   Derived from: © Design System V3 (Gorgeous) Figma file
+   Palette direction: warm "bordeaux/mauve" neutrals, not cool grays.
+   ========================================================= */
+
+/* ─── @font-face: licensed Descript brand fonts ───────
+   Shipped as webfont files in /fonts.
+     Booton  — UI / display / product workhorse
+     Brett   — editorial serif for documentation moments
+     Gamuth Display — marketing display (bold + bold-italic only)
+*/
+@font-face {
+  font-family: "Booton";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/Booton-Regular.otf") format("opentype"),
+       url("fonts/Booton-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Booton";
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  src: url("fonts/Booton-RegularItalic.otf") format("opentype"),
+       url("fonts/Booton-RegularItalic.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Booton";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/Booton-SemiBold.otf") format("opentype"),
+       url("fonts/Booton-SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Booton";
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+  src: url("fonts/Booton-SemiBoldItalic.otf") format("opentype"),
+       url("fonts/Booton-SemiBoldItalic.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Brett";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/205TF-Brett-Regular.otf") format("opentype"),
+       url("fonts/205TF-Brett-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Gamuth Display";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/GamuthDisplay-Bold.otf") format("opentype"),
+       url("fonts/GamuthDisplay-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Gamuth Display";
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  src: url("fonts/GamuthDisplay-BoldItalic.otf") format("opentype"),
+       url("fonts/GamuthDisplay-BoldItalic.ttf") format("truetype");
+}
+
+:root {
+  /* ─── Font families ──────────────────────────────────
+     - Booton:          product UI/display workhorse — buttons, chips,
+                        Underlord, toasts, labels, steppers, checkboxes,
+                        body UI. Regular (400) + SemiBold (600).
+     - Brett:           editorial serif (205TF Brett). Used for
+                        documentation headers and reflective moments.
+     - Gamuth Display:  marketing / cover display face, Bold (700) only.
+                        Used exclusively at 48px+ for hero headlines.
+     - Roboto Mono / Menlo: timecodes and numerics.
+  */
+  --font-display:    "Gamuth Display", "Brett", Georgia, serif; /* 48px+ hero */
+  --font-sans:       "Booton", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif:      "Brett", Georgia, "Cormorant Garamond", serif;
+  --font-mono:       "Roboto Mono", "Menlo", "SF Mono", ui-monospace, monospace;
+
+  /* ─── PRIMITIVE TOKENS ───────────────────────────
+     Raw color values. Named `<hue>-<value>`, where value
+     loosely follows a 0 (lightest) → 900 (darkest) scale.
+     Don't reach for these directly in components —
+     use the semantic tokens below.
+
+     Naming is direct: we call the warm neutral scale
+     "greys" even though the raw hue is a warm red-brown,
+     and call the red-violet heritage accent "pink".
+  */
+
+  /* Grey — the one and only neutral family.
+     Standard 50 → 950 scale. */
+  --grey-950: rgb(16, 4, 9);
+  --grey-900: rgb(22, 5, 12);
+  --grey-800: rgb(38, 23, 29);
+  --grey-750: rgb(50, 33, 40);
+  --grey-700: rgb(63, 42, 50);
+  --grey-600: rgb(76, 52, 62);
+  --grey-500: rgb(88, 63, 74);
+  --grey-450: rgb(114, 87, 97);
+  --grey-400: rgb(139, 111, 122);
+  --grey-300: rgb(162, 137, 147);
+  --grey-200: rgb(209, 199, 203);
+  --grey-100: rgb(228, 221, 224);
+  --grey-50:  rgb(244, 241, 240);
+  --grey-0:   rgb(252, 250, 249);
+
+  /* White — paper / app canvas values */
+  --white-100: rgb(255, 248, 244);
+  --white-50:  rgb(253, 252, 252);
+  --white-75:  rgb(250, 248, 247);
+  --white:     #ffffff;
+  --black:     #000000;
+
+  /* Blurple — bluish-purple. Maps to Accent (AI, focus, key features) */
+  --blurple-300: rgb(185, 185, 244);
+  --blurple-400: rgb(163, 163, 238);
+  --blurple-500: rgb(122, 122, 220);
+  --blurple-600: rgb(95, 95, 194);
+  --blurple-700: rgb(70, 70, 160);
+
+  /* Purple — a distinct family from Blurple. (Reserved.) */
+  --purple-400: rgb(168, 116, 214);
+  --purple-600: rgb(136, 65, 198);
+  --purple-800: rgb(76, 39, 107);
+
+  /* Pink — heritage + Upgrade family */
+  --pink-300: rgb(225, 155, 185);
+  --pink-500: rgb(184, 70, 118);
+  --pink-700: rgb(101, 26, 57);
+  --pink-800: rgb(70, 15, 40);
+
+  /* Blue — info only (no longer used for focus) */
+  --blue-500:  rgb(0, 147, 214);
+
+  /* Red — danger / destructive */
+  --red-500:   rgb(230, 35, 36);
+
+  /* Surface — large app surfaces and cards (semantic).
+     These are the only tokens the app canvas references —
+     never reach into the grey- scale for surfaces. */
+  --surface-recessed:  rgb(247, 245, 242);  /* base app chrome  */
+  --surface-default:   rgb(255, 248, 244);  /* main content     */
+  --surface-elevated:  rgb(253, 252, 252);  /* dialogs, menus   */
+  --surface-inverse:   rgb(37, 30, 33);     /* dark editor      */
+
+  /* ─── SEMANTIC TOKENS ────────────────────────────
+     Named by usage. Map to primitives above. These are
+     what components should reference — not raw primitives.
+
+     Collections:
+       default-*   neutral base styles (most of the product)
+       surface-*   large app surfaces and cards
+       input-*     fields and other interactive elements
+       success-*   positive / confirming messaging
+       danger-*    error / destructive messaging
+       caution-*   warning / high-importance messaging
+       upgrade-*   premium / credits / account balance
+       accent-*    special states and key features (e.g. AI)
+       brand-*     monogram, logo text
+
+     Conventions (suffixes):
+       -fg         foreground (text, icons)
+       -bg         background fill (buttons, banners, callouts)
+       -border     borders, dividers, outlines
+       -input      interactive field surface
+       -primary    main element
+       -secondary  accessory element
+       -inverse    opposite of current mode's base
+  */
+
+  /* Default — neutral base (used for the majority of the product) */
+  --default-fg-primary:    rgba(0, 0, 0, 0.8);
+  --default-fg-secondary:  rgba(22, 5, 12, 0.6);
+  --default-fg-tertiary:   var(--grey-400);
+  --default-fg-inverse:    var(--white-100);
+  --default-fg-strong:     var(--grey-800);
+  --default-bg-primary:    var(--white-100);
+  --default-bg-secondary:  var(--grey-50);
+  --default-bg-inverse:    rgb(37, 30, 33);
+  --default-border:        rgba(63, 42, 50, 0.16);
+  --default-border-subtle: rgba(63, 42, 50, 0.08);
+  --default-border-strong: rgba(63, 42, 50, 0.24);
+  --default-border-inverse: rgba(255, 248, 244, 0.10);
+
+  /* Surface — large app surfaces and cards */
+  --surface-bg-primary:    var(--surface-recessed);
+  --surface-bg-secondary:  var(--surface-default);
+  --surface-bg-raised:     var(--surface-elevated);
+  --surface-bg-inverse:    var(--surface-inverse);
+
+  /* Input */
+  --input-bg:              var(--white);
+  --input-fg:              var(--default-fg-primary);
+  --input-fg-placeholder:  var(--grey-400);
+  --input-border:          rgba(63, 42, 50, 0.16);
+  --input-border-hover:    rgba(63, 42, 50, 0.24);
+  --input-border-focus:    var(--blurple-500);
+  --focus-ring-color:      var(--blurple-500);
+
+  /* Success */
+  --success-fg-primary:    rgb(29, 120, 75);
+  --success-bg-primary:    rgb(230, 243, 233);
+  --success-border:        rgb(155, 212, 177);
+
+  /* Danger */
+  --danger-fg-primary:     var(--red-500);
+  --danger-bg-primary:     var(--red-500);
+  --danger-bg-secondary:   rgb(252, 229, 229);
+  --danger-border:         rgb(244, 180, 180);
+
+  /* Caution */
+  --caution-fg-primary:    rgb(158, 96, 12);
+  --caution-bg-primary:    rgb(253, 237, 207);
+  --caution-border:        rgb(236, 200, 130);
+
+  /* Upgrade — premium, credits, balances (Pink primitives) */
+  --upgrade-fg-primary:    var(--pink-800);
+  --upgrade-bg-primary:    var(--pink-500);
+  --upgrade-bg-secondary:  rgb(250, 228, 237);
+  --upgrade-border:        rgba(184, 70, 118, 0.3);
+
+  /* Accent — AI / Underlord / special states (Blurple primitives) */
+  --accent-fg-primary:     var(--blurple-500);
+  --accent-bg-primary:     var(--blurple-400);
+  --accent-bg-secondary:   rgba(163, 163, 238, 0.15);
+  --accent-border:         rgba(163, 163, 238, 0.4);
+
+  /* Brand — logo mark + logotype, light and dark modes */
+  --brand-logomark-light:  var(--grey-800);
+  --brand-logomark-dark:   rgb(255, 248, 244);
+  --brand-logotype-light:  var(--grey-800);
+  --brand-logotype-dark:   rgb(255, 248, 244);
+
+  /* ─── SCOPED TOKENS ──────────────────────────────
+     Local to specific components or features. Map to
+     semantic or primitive tokens.
+  */
+  --button-primary-bg:       var(--grey-700);
+  --button-primary-fg:       var(--white);
+  --button-primary-hover:    color-mix(in srgb, var(--grey-700) 92%, white);
+  --button-secondary-bg:     var(--grey-50);
+  --button-secondary-fg:     var(--default-fg-primary);
+  --button-destructive-bg:   var(--danger-bg-primary);
+
+  /* ─── Legacy aliases (do not use in new code) ───── */
+  --fg-primary:      var(--default-fg-primary);
+  --fg-strong:       var(--default-fg-strong);
+  --fg-secondary:    var(--default-fg-secondary);
+  --fg-tertiary:     var(--default-fg-tertiary);
+  --fg-muted:        var(--grey-300);
+  --fg-on-dark:      var(--default-fg-inverse);
+  --fg-on-dark-2:    rgba(255, 248, 244, 0.7);
+  --fg-link:         var(--blue-500);
+  --fg-danger:       var(--danger-fg-primary);
+  --bg-app:          var(--surface-recessed);
+  --bg-canvas:       var(--surface-default);
+  --bg-surface:      var(--surface-elevated);
+  --bg-surface-2:    var(--grey-50);
+  --bg-raised:       var(--surface-elevated);
+  --bg-dark:         var(--surface-inverse);
+  --bg-ink:          var(--grey-800);
+  --border-subtle:   var(--default-border-subtle);
+  --border-1:        var(--default-border);
+  --border-2:        var(--default-border-strong);
+  --border-strong:   var(--grey-500);
+  --border-on-dark:  var(--default-border-inverse);
+  --border-on-dark-2: rgba(255, 248, 244, 0.30);
+  --bx-900: var(--grey-900); --bx-800: var(--grey-800); --bx-700: var(--grey-700);
+  --bx-600: var(--grey-600); --bx-500: var(--grey-500); --bx-400: var(--grey-400);
+  --bx-300: var(--grey-300); --bx-200: var(--grey-200); --bx-100: var(--grey-100);
+  --bx-75:  var(--grey-100); --bx-50:  var(--grey-50);  --bx-25:  var(--surface-recessed);
+  --cream-100: var(--surface-default); --cream-200: var(--surface-elevated); --cream-300: var(--surface-default);
+  --white-100: var(--surface-default); --white-50: var(--surface-elevated); --white-75: var(--surface-default);
+  --plum-700: var(--pink-700);
+  --ax-ai: var(--blurple-400); --ax-info: var(--blue-500); --ax-danger: var(--red-500);
+  --ax-purple: var(--blurple-500); --ax-purple-dk: var(--blurple-700);
+  --btn-primary-bg: var(--button-primary-bg); --btn-primary-fg: var(--button-primary-fg);
+  --btn-primary-hover: var(--button-primary-hover);
+  --btn-secondary-bg: var(--button-secondary-bg); --btn-secondary-fg: var(--button-secondary-fg);
+  --btn-destructive-bg: var(--button-destructive-bg);
+
+  /* ─── Shadows (elevation) ─────────────────────────
+     Named elevations: 1, 3, 5, 10. Warm bordeaux-ink,
+     never pure black. Buttons DO NOT carry a shadow —
+     elevation belongs to surfaces, not controls.
+  */
+  --elevation-1:  0 1px 2px rgba(38,23,29,.06), 0 1px 1px rgba(38,23,29,.04);
+  --elevation-3:  0 2px 8px rgba(38,23,29,.08), 0 1px 2px rgba(38,23,29,.04);
+  --elevation-5:  0 4px 16px rgba(38,23,29,.12), 0 2px 6px rgba(38,23,29,.06);
+  --elevation-10: 0 12px 32px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.10);
+
+  /* Legacy aliases (prefer --elevation-* going forward) */
+  --shadow-xs: none;
+  --shadow-sm: var(--elevation-1);
+  --shadow-md: var(--elevation-3);
+  --shadow-lg: var(--elevation-5);
+  --shadow-overlay: var(--elevation-10);
+  --shadow-focus: 0 0 0 2px rgba(0, 147, 214, 0.35);
+
+  /* ─── Radii ──────────────────────────────────────
+     Rule (from Overview): if the element is < 32px, use 4px;
+     else use 8px. Upgrade inline buttons use 6px as exception.
+  */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;  /* cover / large surface */
+  --radius-pill: 999px;
+
+  /* ─── Spacing (4-based; 2px only in small UI) ──── */
+  --space-0:  0;
+  --space-1:  2px;
+  --space-2:  4px;
+  --space-3:  8px;
+  --space-4:  12px;
+  --space-5:  16px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+  --space-13: 128px;
+
+  /* ─── Type scale (raw) ────────────────────────────
+     Lifted from actual Figma text styles.
+  */
+  --fs-9:   9px;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-24: 24px;
+  --fs-48: 48px;
+  --fs-72: 72px;
+
+  --lh-tight:   1.0;
+  --lh-snug:    1.15;
+  --lh-base:    1.375;
+  --lh-body:    1.5;
+
+  --tracking-display: -0.040em;   /* 48px bold headings       */
+  --tracking-h2:      -0.020em;   /* 24px / 16-22             */
+  --tracking-ui:      -0.011em;   /* 16 body                  */
+  --tracking-small:    0.005em;   /* 11px meta                */
+
+  /* ─── Motion ───────────────────────────────────── */
+  --ease-standard:    cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate:  cubic-bezier(0.1, 0.7, 0.3, 1);
+  --ease-accelerate:  cubic-bezier(0.5, 0, 1, 1);
+  --dur-fast:   120ms;
+  --dur-base:   200ms;
+  --dur-slow:   320ms;
+
+  /* ─── Focus ring ───────────────────────────────── */
+  --focus-ring: 0 0 0 2px var(--cream-100),
+                0 0 0 4px var(--ax-info);
+}
+
+/* ─── Semantic element styles ─────────────────────
+   These match the scale used in actual Figma frames.
+*/
+
+.ds-display {
+  /* Marketing / cover display — Gamuth Display Bold only */
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-72);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  color: var(--fg-strong);
+}
+
+.ds-editorial {
+  /* Reflective / documentation serif moments — Brett Regular */
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--fs-48);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--fg-strong);
+}
+
+.ds-h1 {
+  font-family: var(--font-sans);
+  font-weight: 600;            /* Booton SemiBold */
+  font-size: var(--fs-48);
+  line-height: 1;              /* 48px */
+  letter-spacing: var(--tracking-display);
+  color: var(--fg-primary);
+}
+
+.ds-h2 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-24);
+  line-height: 28px;
+  letter-spacing: var(--tracking-display);
+  color: var(--fg-primary);
+}
+
+.ds-h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-16);
+  line-height: 22px;
+  letter-spacing: var(--tracking-h2);
+  color: var(--fg-primary);
+}
+
+.ds-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--fs-16);
+  line-height: 22px;
+  letter-spacing: var(--tracking-h2);
+  color: var(--fg-primary);
+}
+
+.ds-body-sm {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--fs-14);
+  line-height: 20px;
+  letter-spacing: -0.01em;
+  color: var(--fg-primary);
+}
+
+.ds-label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-12);
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--fg-primary);
+}
+
+.ds-meta {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: var(--fs-12);
+  line-height: 16px;
+  color: var(--fg-secondary);
+}
+
+.ds-micro {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--fs-11);
+  line-height: 16px;
+  letter-spacing: var(--tracking-small);
+  color: var(--fg-secondary);
+}
+
+.ds-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-14);
+  line-height: 20px;
+  letter-spacing: -0.02em;
+  color: var(--fg-primary);
+}
