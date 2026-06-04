@@ -423,6 +423,7 @@ function App() {
 
   const activePane = panes[panes.length - 1];
   const dockCenterX = (ulOpen ? t.ulWidth : 0) + (window.innerWidth - (ulOpen ? t.ulWidth : 0)) / 2;
+  const dockBottom = tlOpen ? t.tlHeight + 14 : 64; // ride above the timeline when it's open
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -455,7 +456,7 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
-            {t.contextBar && !mistOpen && <ContextBar selection={selection} dockCenterX={dockCenterX} onUnderlord={openMistDock}/>}
+            {t.contextBar && !mistOpen && <ContextBar selection={selection} dockCenterX={dockCenterX} dockBottom={dockBottom} onUnderlord={openMistDock}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
           </div>
           <Timeline open={tlOpen} height={t.tlHeight} onClose={() => setTweak("timeline", false)}/>
@@ -464,7 +465,7 @@ function App() {
 
       {mistOpen && (
         <EphemeralChat docked={mistDocked} castPos={castRef.current}
-                       dockCenterX={dockCenterX}
+                       dockCenterX={dockCenterX} dockBottom={dockBottom}
                        convo={mistConvo} thinking={mistThinking}
                        onSend={mistSend} onChip={mistChip} onOpenArtifact={onOpenArtifact}
                        onClose={closeMist} onDock={dockMist}/>
@@ -508,10 +509,10 @@ const CTX_TOOLSETS = {
 };
 CTX_TOOLSETS.none = { label: null, tools: CTX_TOOLSETS.scene.tools };
 
-function ContextBar({ selection, dockCenterX, onUnderlord }) {
+function ContextBar({ selection, dockCenterX, dockBottom, onUnderlord }) {
   const set = CTX_TOOLSETS[selection] || CTX_TOOLSETS.none;
   return (
-    <div className="ctx-bar" style={{ left: dockCenterX }}>
+    <div className="ctx-bar" style={{ left: dockCenterX, bottom: dockBottom }}>
       {set.label && <span className="ctx-label">{set.label}</span>}
       {set.tools.map(([icon, label]) => {
         const I = Icons[icon] || Icons.wand;

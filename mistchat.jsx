@@ -3,7 +3,7 @@
 // bottom-center dock. Messages stack upward and dissolve into mist (top fade).
 const { useState, useRef, useEffect } = React;
 
-function EphemeralChat({ docked, castPos, dockCenterX, convo, thinking, onSend, onChip, onOpenArtifact, onClose, onDock }) {
+function EphemeralChat({ docked, castPos, dockCenterX, dockBottom, convo, thinking, onSend, onChip, onOpenArtifact, onClose, onDock }) {
   const [draft, setDraft] = useState("");
   const taRef = useRef(null);
   const scrollRef = useRef(null);
@@ -32,15 +32,16 @@ function EphemeralChat({ docked, castPos, dockCenterX, convo, thinking, onSend, 
   // CAST: translate the dock-anchored container up to the cursor.
   // DOCKED: settle back to the workspace-centered dock (transform transition glides).
   const cx = typeof dockCenterX === "number" ? dockCenterX : window.innerWidth / 2;
+  const db = typeof dockBottom === "number" ? dockBottom : 64;
   let transform = "translateX(-50%)";
   if (!docked && castPos) {
     const dx = castPos.x - cx;
-    const dy = (castPos.y - 14) - (window.innerHeight - 64);
+    const dy = (castPos.y - 14) - (window.innerHeight - db);
     transform = `translateX(-50%) translate(${dx}px, ${dy}px)`;
   }
 
   return (
-    <div className={"mist" + (docked ? " docked" : " cast")} style={{ left: cx, transform }}>
+    <div className={"mist" + (docked ? " docked" : " cast")} style={{ left: cx, bottom: db, transform }}>
       <div className="mist-scroll" ref={scrollRef}>
         {convo.map((m, k) => (
           <div className={"mist-msg " + (m.role === "user" ? "user" : "ai")} key={k}>

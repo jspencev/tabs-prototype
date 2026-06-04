@@ -8,7 +8,7 @@
   width: 440px; max-width: 92vw;
   display: flex; flex-direction: column;
   pointer-events: none;         /* let empty mist area pass clicks through */
-  transition: transform var(--dur-slow) var(--ease-decelerate);
+  transition: transform var(--dur-slow) var(--ease-decelerate), bottom var(--dur-base) var(--ease-decelerate);
 }
 .mist > * { pointer-events: auto; }
 

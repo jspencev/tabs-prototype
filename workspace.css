@@ -197,6 +197,7 @@
   background: rgb(22,17,20);
   overflow: hidden;
   flex: 0 0 auto;
+  transition: height var(--dur-base) var(--ease-decelerate);
 }
 .tl-bar { height:40px; display:flex; align-items:center; gap:12px; padding:0 14px; border-bottom:1px solid rgba(255,248,244,.05); }
 .tl-grip { display:flex; align-items:center; gap:7px; color: rgba(255,248,244,.5); font:600 10.5px/1 var(--font-sans); letter-spacing:.04em; text-transform:uppercase; }
@@ -246,7 +247,8 @@
   display:flex; align-items:center; gap:4px; padding:6px; border-radius:14px;
   background: rgba(40,32,37,.82); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   border:1px solid rgba(255,248,244,.14); box-shadow: var(--elevation-10);
-  animation: ctx-rise var(--dur-base) var(--ease-decelerate); }
+  animation: ctx-rise var(--dur-base) var(--ease-decelerate);
+  transition: bottom var(--dur-base) var(--ease-decelerate); }
 @keyframes ctx-rise { from { opacity:0; transform:translateX(-50%) translateY(6px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
 .ctx-bar .ctx-label { padding:0 8px 0 6px; font:600 10px/1 var(--font-sans); letter-spacing:.04em;
   text-transform:uppercase; color: rgba(255,248,244,.5); }
