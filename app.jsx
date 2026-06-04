@@ -430,9 +430,8 @@ function App() {
   return (
     <div className={"app density-" + t.density}>
       <header className="top">
-        <div className="traffic"><i></i><i></i><i></i></div>
         <button className={"chrome-btn icon" + (ulOpen ? " on" : "")} title="Toggle Underlord"
-                onClick={() => setTweak("underlord", !ulOpen)}><Icons.sparkle/></button>
+                onClick={() => setTweak("underlord", !ulOpen)}><Icons.robot/></button>
         <div className="title">Launch video — rough cut<span className="crumb">Marketing</span></div>
         <div className="spacer"></div>
         <div className="status"><span className="dot"></span> Transcribed · 98%</div>

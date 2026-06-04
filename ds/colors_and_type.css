@@ -119,11 +119,15 @@
   --black:     #000000;
 
   /* Blurple — bluish-purple. Maps to Accent (AI, focus, key features) */
+  --blurple-0:   rgb(249, 249, 255);
+  --blurple-100: rgb(220, 220, 255);
+  --blurple-200: rgb(205, 205, 254);
   --blurple-300: rgb(185, 185, 244);
   --blurple-400: rgb(163, 163, 238);
   --blurple-500: rgb(122, 122, 220);
   --blurple-600: rgb(95, 95, 194);
   --blurple-700: rgb(70, 70, 160);
+  --blurple-800: rgb(52, 52, 171);
 
   /* Purple — a distinct family from Blurple. (Reserved.) */
   --purple-400: rgb(168, 116, 214);
@@ -145,9 +149,9 @@
   /* Surface — large app surfaces and cards (semantic).
      These are the only tokens the app canvas references —
      never reach into the grey- scale for surfaces. */
-  --surface-recessed:  rgb(247, 245, 242);  /* base app chrome  */
-  --surface-default:   rgb(255, 248, 244);  /* main content     */
-  --surface-elevated:  rgb(253, 252, 252);  /* dialogs, menus   */
+  --surface-recessed:  rgb(244, 241, 240);  /* base app chrome  */
+  --surface-default:   rgb(253, 252, 252);  /* main content     */
+  --surface-elevated:  #ffffff;             /* dialogs, menus   */
   --surface-inverse:   rgb(37, 30, 33);     /* dark editor      */
 
   /* ─── SEMANTIC TOKENS ────────────────────────────
@@ -176,9 +180,9 @@
   */
 
   /* Default — neutral base (used for the majority of the product) */
-  --default-fg-primary:    rgba(0, 0, 0, 0.8);
+  --default-fg-primary:    rgb(38, 23, 29);
   --default-fg-secondary:  rgba(22, 5, 12, 0.6);
-  --default-fg-tertiary:   var(--grey-400);
+  --default-fg-tertiary:   rgb(106, 89, 95);
   --default-fg-inverse:    var(--white-100);
   --default-fg-strong:     var(--grey-800);
   --default-bg-primary:    var(--white-100);
@@ -228,15 +232,43 @@
 
   /* Accent — AI / Underlord / special states (Blurple primitives) */
   --accent-fg-primary:     var(--blurple-500);
+  --accent-fg-inverse:     var(--blurple-0);
   --accent-bg-primary:     var(--blurple-400);
   --accent-bg-secondary:   rgba(163, 163, 238, 0.15);
+  --accent-bg-default:     var(--blurple-100);
   --accent-border:         rgba(163, 163, 238, 0.4);
+  --accent-border-soft:    rgba(122, 122, 220, 0.18);
 
   /* Brand — logo mark + logotype, light and dark modes */
   --brand-logomark-light:  var(--grey-800);
   --brand-logomark-dark:   rgb(255, 248, 244);
   --brand-logotype-light:  var(--grey-800);
   --brand-logotype-dark:   rgb(255, 248, 244);
+
+  /* ─── ON-LIGHT CHROME HELPERS ─────────────────────
+     Light-mode editor chrome shorthands. Components reference
+     these for text / hover / borders on light surfaces. */
+  --fg-1:        var(--default-fg-primary);    /* primary text/icons   */
+  --fg-2:        var(--default-fg-secondary);  /* secondary text       */
+  --fg-3:        var(--default-fg-tertiary);   /* muted labels         */
+  --surf-hover:  rgba(88, 63, 74, 0.08);       /* hover fill           */
+  --surf-active: rgba(88, 63, 74, 0.12);       /* pressed/selected fill*/
+  --line-soft:   rgba(88, 63, 74, 0.10);       /* soft divider         */
+  --line-med:    rgba(63, 42, 50, 0.16);       /* default border       */
+
+  /* ─── CONTROL SIZING (Descript) ───────────────────
+     Standard control heights/paddings. 32px default, 24 dense,
+     38 large; 16px icon glyphs. */
+  --ctl-h:       32px;
+  --ctl-h-dense: 24px;
+  --ctl-h-lg:    38px;
+  --ctl-pad-x:   16px;
+  --icon:        16px;
+
+  /* Underlord chat type (Descript underlord-regular: Booton 12/18, weight 425) */
+  --underlord-fs: 12px;
+  --underlord-lh: 18px;
+  --underlord-fw: 425;
 
   /* ─── SCOPED TOKENS ──────────────────────────────
      Local to specific components or features. Map to
@@ -315,21 +347,22 @@
   --radius-xl: 20px;  /* cover / large surface */
   --radius-pill: 999px;
 
-  /* ─── Spacing (4-based; 2px only in small UI) ──── */
+  /* ─── Spacing (Descript 8px grid; 2px only in small UI) ──── */
   --space-0:  0;
-  --space-1:  2px;
-  --space-2:  4px;
-  --space-3:  8px;
-  --space-4:  12px;
-  --space-5:  16px;
-  --space-6:  24px;
-  --space-7:  32px;
-  --space-8:  40px;
-  --space-9:  48px;
-  --space-10: 64px;
-  --space-11: 80px;
-  --space-12: 96px;
-  --space-13: 128px;
+  --space-0-5: 2px;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  16px;
+  --space-4:  24px;
+  --space-5:  32px;
+  --space-6:  40px;
+  --space-7:  48px;
+  --space-8:  56px;
+  --space-9:  64px;
+  --space-10: 80px;
+  --space-11: 96px;
+  --space-12: 128px;
+  --space-13: 160px;
 
   /* ─── Type scale (raw) ────────────────────────────
      Lifted from actual Figma text styles.

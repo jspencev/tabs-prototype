@@ -131,7 +131,7 @@ function PlanDoc({ updated, onGo, goPulse }) {
       <div className="doc-bar">
         <span className="ro"><Icons.lock/> Generated · read-only</span>
         <span className="sp"></span>
-        <button className={"go-btn" + (goPulse ? " pulse" : "")} onClick={onGo}>
+        <button className="go-btn" onClick={onGo}>
           <Icons.sparkle/> Go
         </button>
       </div>

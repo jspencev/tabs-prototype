@@ -104,8 +104,8 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
         {activeTab && (
           <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect}/>
         )}
-        {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(163,163,238,.14)",borderLeft:"2px solid var(--blurple-400)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
-          <span style={{font:"600 12px/1 var(--font-sans)",color:"#bdbdfb"}}>Split here</span>
+        {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(122,122,220,.12)",borderLeft:"2px solid var(--blurple-500)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
+          <span style={{font:"600 12px/1 var(--font-sans)",color:"var(--blurple-700)"}}>Split here</span>
         </div>}
       </div>
     </section>

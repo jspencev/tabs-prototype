@@ -1,4 +1,4 @@
-/* ============ Ephemeral "mist" chat (slash to summon) ============ */
+/* ============ Ephemeral "mist" chat (slash to summon) — Descript light ============ */
 .mist {
   position: fixed;
   left: 50%;
@@ -16,12 +16,12 @@
 .mist-dock, .mist-x {
   width: 28px; height: 28px;
   border: 0; border-radius: 999px;
-  background: rgba(40,32,37,.7); color: rgba(255,248,244,.7);
+  background: rgba(253,252,252,.8); color: var(--fg-2);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   display: flex; align-items: center; justify-content: center;
   box-shadow: var(--elevation-3);
 }
-.mist-dock:hover, .mist-x:hover { background: rgba(48,38,44,.92); color: #fff; }
+.mist-dock:hover, .mist-x:hover { background: #fff; color: var(--fg-1); }
 .mist-dock svg, .mist-x svg { width: 15px; height: 15px; }
 
 /* the scrolling trail — constant 400px tall, fades into mist at the top */
@@ -30,8 +30,8 @@
   overflow-y: auto;
   display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
   padding: 16px 14px 14px;
-  background: linear-gradient(to top, rgba(20,15,18,.94), rgba(26,20,23,.82));
-  border: 1px solid rgba(255,248,244,.08);
+  background: linear-gradient(to top, rgba(253,252,252,.96), rgba(244,241,240,.82));
+  border: 1px solid var(--line-soft);
   border-radius: 16px 16px 14px 14px;
   -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
   -webkit-mask-image: linear-gradient(to top, #000 0%, #000 70%, transparent 100%);
@@ -49,61 +49,60 @@
 .mist-msg { display: flex; flex-direction: column; gap: 4px; }
 .mist-msg.user { align-items: flex-end; }
 .mist-bubble {
-  max-width: 88%; padding: 8px 11px; border-radius: 12px;
-  font: 400 12.5px/1.45 var(--font-sans); letter-spacing: -.01em;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  max-width: 88%; padding: 10px 16px; border-radius: var(--radius-md);
+  font: var(--underlord-fw) var(--underlord-fs)/var(--underlord-lh) var(--font-sans); letter-spacing: -.005em;
 }
-.mist-msg.user .mist-bubble { background: rgba(255,248,244,.12); color: var(--cream-100); border-bottom-right-radius: 4px; }
-.mist-msg.ai .mist-bubble { background: var(--accent-bg-secondary); border: 1px solid var(--accent-border); color: var(--cream-100); border-bottom-left-radius: 4px; }
+.mist-msg.user .mist-bubble { background: var(--accent-bg-default); border: 1px solid var(--accent-border-soft); color: var(--fg-1); }
+.mist-msg.ai .mist-bubble { background: var(--surface-default); border: 1px solid var(--line-soft); color: var(--fg-1); }
 
 .mist-artifact {
   display: flex; align-items: center; gap: 10px; padding: 9px 11px; cursor: pointer;
-  background: rgba(40,32,37,.7); border: 1px solid rgba(255,248,244,.14); border-radius: 10px;
+  background: rgba(253,252,252,.92); border: 1px solid var(--line-med); border-radius: 10px;
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   transition: border-color var(--dur-fast), background var(--dur-fast);
 }
 .mist-artifact:hover { border-color: var(--accent-border); background: var(--accent-bg-secondary); }
-.mist-artifact .ai { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 7px; background: rgba(163,163,238,.18); display: flex; align-items: center; justify-content: center; }
-.mist-artifact .ai svg { width: 15px; height: 15px; color: #bdbdfb; }
-.mist-artifact .meta .nm { font: 600 12px/1.2 var(--font-sans); color: #fff; }
-.mist-artifact .meta .sub { font: 400 10.5px/1.3 var(--font-sans); color: rgba(255,248,244,.5); margin-top: 2px; }
-.mist-artifact .open { margin-left: auto; font: 500 10px/1 var(--font-sans); color: var(--blurple-300); }
+.mist-artifact .ai { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 7px; background: var(--accent-bg-secondary); display: flex; align-items: center; justify-content: center; }
+.mist-artifact .ai svg { width: 15px; height: 15px; color: var(--accent-fg-primary); }
+.mist-artifact .meta .nm { font: 600 12px/1.2 var(--font-sans); color: var(--fg-1); }
+.mist-artifact .meta .sub { font: 400 10.5px/1.3 var(--font-sans); color: var(--fg-3); margin-top: 2px; }
+.mist-artifact .open { margin-left: auto; font: 500 10px/1 var(--font-sans); color: var(--accent-fg-primary); }
 
 .mist-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .mist-chip {
-  height: 26px; padding: 0 11px; border-radius: 999px;
-  background: rgba(40,32,37,.7); border: 1px solid rgba(255,248,244,.16); color: var(--cream-100);
+  height: 28px; padding: 0 11px; border-radius: 999px;
+  background: rgba(253,252,252,.92); border: 1px solid var(--line-med); color: var(--fg-1);
   font: 500 11px/1 var(--font-sans); display: inline-flex; align-items: center;
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 .mist-chip:hover { background: var(--accent-bg-secondary); border-color: var(--accent-border); }
 
-/* the caster / docked input pill */
+/* the caster / docked input pill — keeps the blurple "mist" glow (intentional flourish) */
 .mist.docked .mist-input { margin-top: 8px; }
 .mist-input {
   display: flex; align-items: flex-end; gap: 8px;
   padding: 8px 8px 8px 12px;
-  background: rgba(40,32,37,.88);
+  background: rgba(253,252,252,.92);
   border: 1px solid var(--accent-border); border-radius: 14px;
   -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
-  box-shadow: 0 0 0 1px rgba(163,163,238,.12), 0 8px 30px rgba(0,0,0,.4), 0 0 40px rgba(163,163,238,.18);
+  box-shadow: 0 0 0 1px rgba(122,122,220,.16), 0 8px 30px rgba(38,23,29,.12), 0 0 40px rgba(122,122,220,.30);
   transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
 }
 .mist-input:focus-within {
-  border-color: var(--blurple-400);
-  box-shadow: 0 0 0 1px rgba(163,163,238,.25), 0 8px 30px rgba(0,0,0,.45), 0 0 56px rgba(163,163,238,.3);
+  border-color: var(--blurple-500);
+  box-shadow: 0 0 0 1px rgba(122,122,220,.28), 0 8px 30px rgba(38,23,29,.14), 0 0 56px rgba(122,122,220,.42);
 }
-.mist-spark { width: 22px; height: 22px; flex: 0 0 22px; display: flex; align-items: center; justify-content: center; color: var(--blurple-300); margin-bottom: 4px; }
+.mist-spark { width: 22px; height: 22px; flex: 0 0 22px; display: flex; align-items: center; justify-content: center; color: var(--accent-fg-primary); margin-bottom: 4px; }
 .mist-spark svg { width: 17px; height: 17px; }
 .mist-input textarea {
   flex: 1; background: transparent; border: 0; resize: none; outline: none;
-  color: #fff; font: 400 13px/1.45 var(--font-sans); max-height: 80px; padding: 4px 0;
+  color: var(--fg-1); font: 400 13px/1.45 var(--font-sans); max-height: 80px; padding: 4px 0;
 }
-.mist-input textarea::placeholder { color: rgba(255,248,244,.45); }
+.mist-input textarea::placeholder { color: var(--fg-3); }
 .mist-send {
   width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; border: 0;
-  background: var(--blurple-400); color: #241d28;
+  background: var(--blurple-600); color: #fff;
   display: flex; align-items: center; justify-content: center; transition: opacity var(--dur-fast);
 }
 .mist-send svg { width: 16px; height: 16px; }

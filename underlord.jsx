@@ -75,14 +75,10 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
   return (
     <aside className="ul">
       <div className="ul-head">
-        <div className="ul-mark"><Icons.sparkle/></div>
-        <div>
-          <div className="t">Underlord</div>
-          <div className="st">● {thinking ? "Working…" : "Ready"}</div>
-        </div>
+        <div className="ul-title">Underlord <span className="ul-beta">Beta</span></div>
         <div className="ul-head-actions">
-          <button className="icon-ghost" title="New chat" onClick={onNewChat}><Icons.plus/></button>
-          <button ref={histRef} className={"icon-ghost" + (histOpen ? " on" : "")} title="Chat history" onClick={toggleHist}><Icons.history/></button>
+          <button className="icon-ghost" title="New chat" onClick={onNewChat}><Icons.messagePlus/></button>
+          <button ref={histRef} className={"icon-ghost" + (histOpen ? " on" : "")} title="Chat history" onClick={toggleHist}><Icons.conversation/></button>
           <button className="icon-ghost close" title="Hide Underlord" onClick={onClose}><Icons.sidebar/></button>
         </div>
         {histOpen && (
@@ -113,7 +109,6 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
 
         {convo.map((m, k) => (
           <div className={"msg " + (m.role === "user" ? "user" : "ai")} key={k}>
-            {m.role === "ai" && <span className="who">Underlord</span>}
             {m.file && (
               <div className="ctx-file">
                 <span className="ti"><Icons.video/></span>
@@ -151,8 +146,7 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
 
         {thinking && (
           <div className="msg ai">
-            <span className="who">Underlord</span>
-            <div className="think"><span className="spin"></span> Thinking · ~60s</div>
+            <div className="think shimmer">Thinking · ~60s</div>
           </div>
         )}
       </div>
@@ -173,11 +167,17 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
 
       <div className="ul-composer">
         <div className="composer-box" ref={composerRef}>
-          <textarea ref={taRef} rows="1" value={draft} placeholder="Ask Underlord to make an edit…  (type / for skills)"
+          <textarea ref={taRef} rows="1" value={draft} placeholder="Ask Underlord, @ to add context"
                     onChange={grow} onKeyDown={onKey}/>
-          <button className="send" disabled={!draft.trim()} onClick={send}><Icons.arrowUp/></button>
+          <div className="composer-bar">
+            <button className="cbtn" title="Upload video, audio, image, or PDF files"><Icons.paperclip/></button>
+            <button className="cbtn" title="Add context"><Icons.at/></button>
+            <button className="cmodel" title="Model">Auto <Icons.chevD/></button>
+            <span className="sp"></span>
+            <button className="send" disabled={!draft.trim()} onClick={send}><Icons.arrowUp/></button>
+          </div>
         </div>
-        <div className="ul-hint">Type <b>/</b> for skills</div>
+        <div className="ul-hint">Underlord can make mistakes. <b>Learn more</b></div>
       </div>
     </aside>
   );
