@@ -3,18 +3,50 @@ const { useState } = React;
 
 function VideoSurface({ demo }) {
   const added = !!(demo && demo.videoAdded);
+  const [sel, setSel] = useState(null); // null | 'video' | 'scene'
+  const [sc, setSc] = useState({
+    name: "Scene 1", ratio: "16:9", bg: "#251E21",
+    transition: "fade", transDur: 0.5, length: 8, blur: 0,
+  });
+  const [vid, setVid] = useState({
+    clip: "MM 3.2.26 — full", scale: 100, rotation: 0, opacity: 100, radius: 0,
+    volume: 80, speed: 1, studioSound: true, eyeContact: false,
+  });
+  const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
+  const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
+
   return (
     <div className="surf-video">
       <div className="canvas-bar">
-        <span className="cpill"><Icons.scenes/> {added ? "Scene 1" : "No scenes yet"}</span>
+        <button className={"cpill btn" + (sel === "scene" ? " sel" : "")}
+                onClick={(e) => { e.stopPropagation(); if (added) setSel("scene"); }}>
+          <Icons.scenes/> {added ? sc.name : "No scenes yet"}
+        </button>
         <span className="cpill">1920 × 1080</span>
+        {sel === "video" && <>
+          <button className={"cpill btn" + (vid.studioSound ? " ai" : "")}
+                  onClick={(e) => { e.stopPropagation(); setVideo("studioSound", !vid.studioSound); }}>
+            <Icons.audio/> Studio Sound
+          </button>
+          <button className={"cpill btn" + (vid.eyeContact ? " ai" : "")}
+                  onClick={(e) => { e.stopPropagation(); setVideo("eyeContact", !vid.eyeContact); }}>
+            <Icons.sparkle/> Eye Contact
+          </button>
+        </>}
         <span className="sp"></span>
         <span className="zoom">Fit</span>
       </div>
-      <div className="stage-wrap">
+      <div className="stage-wrap" onClick={() => setSel(null)}>
         {added ? (
-          <div className="stage stage-video">
-            <img src="video-thumb.png" alt="Video"/>
+          <div className="stage stage-video" style={{ borderRadius: vid.radius }}>
+            <img src="video-thumb.png" alt="Video"
+                 style={{ opacity: vid.opacity / 100, transform: `scale(${vid.scale / 100})` }}
+                 onClick={(e) => { e.stopPropagation(); setSel("video"); }}/>
+            {sel === "video" && <div className="vid-frame" style={{ borderRadius: vid.radius }}>
+              <span className="tag">Video</span>
+              <span className="h tl"></span><span className="h tr"></span>
+              <span className="h bl"></span><span className="h br"></span>
+            </div>}
           </div>
         ) : (
           <div className="canvas-empty">
@@ -24,6 +56,8 @@ function VideoSurface({ demo }) {
           </div>
         )}
       </div>
+      {sel === "video" && <VideoProperties vid={vid} set={setVideo} onClose={() => setSel(null)} side="right"/>}
+      {sel === "scene" && <SceneProperties sc={sc} set={setScene} onClose={() => setSel(null)}/>}
     </div>
   );
 }

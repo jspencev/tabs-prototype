@@ -173,7 +173,7 @@
 .canvas-empty .ce-title { font:600 14px/1 var(--font-sans); color: rgba(255,248,244,.7); }
 .canvas-empty .ce-sub { font:400 12.5px/1.4 var(--font-sans); max-width:280px; text-align:center; }
 .stage.stage-video { background:#000; box-shadow:0 10px 30px rgba(0,0,0,.5); }
-.stage.stage-video img { width:100%; height:100%; object-fit:contain; display:block; }
+.stage.stage-video img { width:100%; height:100%; object-fit:contain; display:block; cursor:pointer; }
 
 /* ============ Timeline drawer (bottom) ============ */
 .timeline {
