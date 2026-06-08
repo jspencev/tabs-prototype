@@ -48,6 +48,31 @@ button { font-family: inherit; cursor: pointer; }
 .chrome-btn.icon:hover { color: var(--fg-1); }
 .chrome-btn.on { background: var(--accent-bg-secondary); border-color: var(--accent-border); color: var(--accent-fg-primary); }
 .chrome-btn svg { width:16px; height:16px; }
+.top .status.synced svg { width:13px; height:13px; color:#1d784b; }
+
+/* share (project access) popover — anchored, never a modal */
+.share-pop { position:fixed; z-index:50; width:280px; background: var(--surface-elevated);
+  border:1px solid var(--line-med); border-radius:12px; padding:12px; box-shadow: var(--elevation-5);
+  display:flex; flex-direction:column; gap:10px; }
+.share-pop .sp-title { font:600 12.5px/1 var(--font-sans); color: var(--fg-1); }
+.share-pop .sp-invite { display:flex; gap:6px; }
+.share-pop .sp-invite input { flex:1; min-width:0; height: var(--ctl-h); border:1px solid var(--line-med); border-radius: var(--radius-md);
+  background: var(--surface-default); padding:0 10px; font:400 12px/1 var(--font-sans); color: var(--fg-1); outline:none; }
+.share-pop .sp-invite input:focus { border-color: var(--input-border-focus); }
+.share-pop .sp-invite button { height: var(--ctl-h); padding:0 12px; border:0; border-radius: var(--radius-md);
+  background: var(--blurple-600); color:#fff; font:600 11.5px/1 var(--font-sans); }
+.share-pop .sp-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background: var(--surf-hover); }
+.share-pop .sp-row .sp-ic { display:flex; color: var(--fg-2); }
+.share-pop .sp-row .sp-ic svg { width:16px; height:16px; }
+.share-pop .sp-meta { display:flex; flex-direction:column; min-width:0; }
+.share-pop .sp-meta .sp-nm { font:500 12px/1.2 var(--font-sans); color: var(--fg-1); }
+.share-pop .sp-meta .sp-sub { font:400 10.5px/1 var(--font-sans); color: var(--fg-3); margin-top:2px; }
+.share-pop .sp-row > svg:last-child { margin-left:auto; width:13px; height:13px; color: var(--fg-3); }
+.share-pop .sp-copy { height: var(--ctl-h); border:1px solid var(--line-med); border-radius: var(--radius-md);
+  background: var(--surface-default); color: var(--fg-1); font:600 12px/1 var(--font-sans);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+.share-pop .sp-copy:hover { background: var(--surf-hover); }
+.share-pop .sp-copy svg { width:14px; height:14px; }
 
 /* ============ Body grid: underlord | workspace ============ */
 .body {

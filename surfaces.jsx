@@ -20,8 +20,10 @@ window.EffectPill = EffectPill;
 // maps an effect key to its "processing" flag on the vid state
 const EFFECT_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy" };
 
-function VideoSurface({ demo, onSelect }) {
+function VideoSurface({ demo, onSelect, onAddMedia }) {
   const added = !!(demo && demo.videoAdded);
+  const [uploading, setUploading] = useState(null); // null | 'upload' | 'record' — fake ingest
+  const [dragOver, setDragOver] = useState(false);
   const [sel, setSel] = useState(null); // null | 'video' | 'scene'
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
@@ -36,6 +38,14 @@ function VideoSurface({ demo, onSelect }) {
   const [ssPop, setSsPop] = useState(null); // { rect } when the Studio Sound intensity popover is open
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
+
+  // Empty Video tab: fake ingesting the demo file (upload or record), then hand
+  // off to the app to flip into the post-upload state.
+  const onUpload = (mode) => {
+    if (uploading) return;
+    setUploading(mode);
+    setTimeout(() => { setUploading(null); if (onAddMedia) onAddMedia(mode); }, 1100);
+  };
 
   // Report the current canvas selection up so the contextual toolbar can adapt.
   useEffect(() => { if (onSelect) onSelect(sel); }, [sel]);
@@ -93,11 +103,29 @@ function VideoSurface({ demo, onSelect }) {
               <span className="h bl"></span><span className="h br"></span>
             </div>}
           </div>
-        ) : (
+        ) : uploading ? (
           <div className="canvas-empty">
-            <div className="ce-icon"><Icons.video/></div>
-            <div className="ce-title">No media yet</div>
-            <div className="ce-sub">Your video will appear here once it’s added to the project.</div>
+            <div className="ce-uploading">
+              <span className="ce-spin"></span>
+              <div className="ce-title">{uploading === "record" ? "Recording…" : "Uploading…"}</div>
+              <div className="ce-sub">{(window.DEMO && window.DEMO.fileName) || "recording.mp4"}</div>
+            </div>
+          </div>
+        ) : (
+          <div className={"canvas-empty" + (dragOver ? " drag" : "")}
+               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+               onDragLeave={() => setDragOver(false)}
+               onDrop={(e) => { e.preventDefault(); setDragOver(false); onUpload("upload"); }}>
+            <button className="ce-hitbox" onClick={(e) => { e.stopPropagation(); onUpload("upload"); }}>
+              <span className="ce-icon"><Icons.upload/></span>
+              <span className="ce-title">Upload a file</span>
+              <span className="ce-sub">Click to browse, or drag &amp; drop a video here</span>
+            </button>
+            <div className="ce-or">or</div>
+            <button className="ce-record" onClick={(e) => { e.stopPropagation(); onUpload("record"); }}>
+              <Icons.record/> Record
+            </button>
+            {dragOver && <div className="ce-drop">Drop to add</div>}
           </div>
         )}
       </div>
@@ -154,6 +182,17 @@ function PlanDoc({ updated, onGo, goPulse }) {
 function ScriptSurface({ demo }) {
   const D = window.DEMO || { transcript: [], speakers: {}, projectTitle: "" };
   const flags = demo || {};
+  if (!flags.videoAdded) {
+    return (
+      <div className="surf-script empty">
+        <div className="script-empty">
+          <div className="se-ic"><Icons.script/></div>
+          <div className="se-title">No transcript yet</div>
+          <div className="se-sub">Your transcript will appear here once media is added to the project.</div>
+        </div>
+      </div>
+    );
+  }
   let paras = D.transcript;
   if (flags.rearranged && D.rearrangedOrder) {
     const byId = {};
@@ -313,6 +352,105 @@ function ReviewSurface() {
   );
 }
 
+// ── Publish ───────────────────────────────────────────────────────────────
+// A tab (never a modal) that mirrors Descript's Export/Publish popover:
+// destinations, format, resolution, page access, and a Publish action.
+const PUBLISH_DESTS = [
+  { id: "web",     icon: "globe",    label: "Web link",     sub: "Shareable Descript page" },
+  { id: "local",   icon: "download", label: "Local export", sub: "Download a file" },
+  { id: "youtube", icon: "youtube",  label: "YouTube",      sub: "Publish to your channel" },
+  { id: "drive",   icon: "drive",    label: "Google Drive", sub: "Save a copy to Drive" },
+];
+const PUBLISH_FORMATS = ["Video", "Audio", "GIF", "Subtitles", "Transcript"];
+
+function PublishSurface() {
+  const [dest, setDest] = useState("web");
+  const [format, setFormat] = useState("Video");
+  const [resolution, setResolution] = useState("1080p");
+  const [access, setAccess] = useState("Anyone with the link");
+  const [busy, setBusy] = useState(false);
+  const [published, setPublished] = useState(false);
+  const isWeb = dest === "web";
+  const publish = () => {
+    if (busy) return;
+    setBusy(true);
+    setTimeout(() => { setBusy(false); setPublished(true); }, 1400);
+  };
+  return (
+    <div className="surf-publish">
+      <div className="pub-bar">
+        <span className="pub-title">{published ? "Published" : "Publish"}</span>
+        <span className="sp"></span>
+        {published && <span className="pub-live"><Icons.globe/> Live</span>}
+      </div>
+      <div className="pub-body">
+        <div className="pub-dests">
+          {PUBLISH_DESTS.map((d) => {
+            const I = Icons[d.icon] || Icons.globe;
+            return (
+              <button key={d.id} className={"pub-dest" + (dest === d.id ? " on" : "")}
+                      onClick={() => { setDest(d.id); setPublished(false); }}>
+                <span className="pd-ic"><I/></span>
+                <span className="pd-meta"><span className="pd-nm">{d.label}</span><span className="pd-sub">{d.sub}</span></span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="pub-panel">
+          {!published ? (
+            <>
+              <div className="pub-row">
+                <span className="pub-lab">Format</span>
+                <div className="pub-chips">
+                  {PUBLISH_FORMATS.map((f) => (
+                    <button key={f} className={"pub-chip" + (format === f ? " on" : "")}
+                            onClick={() => setFormat(f)}>{f}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="pub-row">
+                <span className="pub-lab">Resolution</span>
+                <select className="pub-select" value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                  <option>720p</option><option>1080p</option><option>4K</option>
+                </select>
+              </div>
+              {isWeb && (
+                <div className="pub-row">
+                  <span className="pub-lab">Page access</span>
+                  <select className="pub-select" value={access} onChange={(e) => setAccess(e.target.value)}>
+                    <option>Anyone with the link</option>
+                    <option>Project access required</option>
+                    <option>Password protected</option>
+                  </select>
+                </div>
+              )}
+              <button className="pub-go" onClick={publish} disabled={busy}>
+                {busy ? <span className="pspin"></span> : <Icons.globe/>}
+                {busy ? "Publishing…" : (isWeb ? "Publish" : "Export")}
+              </button>
+            </>
+          ) : (
+            <div className="pub-done">
+              <div className="pub-row">
+                <span className="pub-lab">Share link</span>
+                <div className="pub-linkfield">
+                  <input readOnly value="share.descript.com/v/a1b2c3d4"/>
+                  <button className="pub-copy">Copy</button>
+                </div>
+              </div>
+              <div className="pub-actions">
+                <button className="pub-secondary"><Icons.download/> Download</button>
+                <button className="pub-secondary"><Icons.globe/> Open share page</button>
+                <button className="pub-secondary" onClick={() => setPublished(false)}>Update settings</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Placeholder({ icon, title, body }) {
   const I = Icons[icon] || Icons.media;
   return (
@@ -325,11 +463,12 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect, onAddMedia }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo} onSelect={onSelect}/>;
+    case "video":  return <VideoSurface demo={demo} onSelect={onSelect} onAddMedia={onAddMedia}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
+    case "publish":return <PublishSurface/>;
     case "script": return <ScriptSurface demo={demo}/>;
     case "media":  return <Placeholder icon="media" title="Media library" body="Drag clips, images and recordings here. This whole surface is just a tab now."/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
@@ -340,4 +479,4 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect }) {
   }
 }
 
-Object.assign(window, { VideoSurface, PlanDoc, ReviewSurface, ScriptSurface, Placeholder, SurfaceContent });
+Object.assign(window, { VideoSurface, PlanDoc, ReviewSurface, PublishSurface, ScriptSurface, Placeholder, SurfaceContent });

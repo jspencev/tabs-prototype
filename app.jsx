@@ -8,7 +8,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "tlHeight": 300,
   "density": "comfortable",
   "accent": "#A3A3EE",
-  "contextBar": true
+  "contextBar": true,
+  "scenario": "empty"
 }/*EDITMODE-END*/;
 
 let _seq = 100;
@@ -19,21 +20,33 @@ function makeTab(kind, extra = {}) {
   return { id: uid(kind), kind, label: d.label, icon: d.icon, closeable: true, ...extra };
 }
 
+// Moderator scenarios: the prototype can be reset into any of the set-up states
+// the research tasks assume. A scenario derives the demo flags, the seeded
+// Underlord conversation, and a clean Video + Script layout.
+function scenarioBaseline(scenario) {
+  const tabsById = { "video-1": makeTab("video", { id: "video-1", closeable: false }),
+                     "script-1": makeTab("script", { id: "script-1" }) };
+  const panes = [{ id: "p1", tabIds: ["video-1", "script-1"], activeId: "video-1" }];
+  // Underlord is decoupled from project state: a scenario only sets up the
+  // project. It never fabricates chat — Underlord stays empty until the user
+  // talks to it (or uploads through it).
+  const flags = (f) => ({ videoAdded: false, fillersRemoved: false, fillerStriking: false,
+                          chaptersAdded: false, rearranged: false, ...f });
+  if (scenario === "postUpload") return { tabsById, panes, flags: flags({ videoAdded: true }), convo: [] };
+  if (scenario === "roughCut")   return { tabsById, panes, flags: flags({ videoAdded: true, chaptersAdded: true }), convo: [] };
+  return { tabsById, panes, flags: flags(), convo: [] };
+}
+const INITIAL = scenarioBaseline(TWEAK_DEFAULTS.scenario);
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
 
   // ---- tab system ----
-  const [tabsById, setTabsById] = useState(() => {
-    const v = makeTab("video", { id: "video-1", closeable: false });
-    const s = makeTab("script", { id: "script-1" });
-    return { "video-1": v, "script-1": s };
-  });
-  const [panes, setPanes] = useState(() => (
-    [{ id: "p1", tabIds: ["video-1", "script-1"], activeId: "video-1" }]
-  ));
+  const [tabsById, setTabsById] = useState(() => INITIAL.tabsById);
+  const [panes, setPanes] = useState(() => INITIAL.panes);
 
   // ---- underlord chat ----
-  const [convo, setConvo] = useState([]);
+  const [convo, setConvo] = useState(INITIAL.convo);
   const [thinking, setThinking] = useState(false);
   const [planUpdated, setPlanUpdated] = useState(false);
   const [goPulse, setGoPulse] = useState(false);
@@ -51,13 +64,18 @@ function App() {
   const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const castRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
+  // ---- share (project access) popover ----
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePos, setSharePos] = useState({ top: 0, right: 0 });
+  const shareRef = useRef(null);
+
   // ---- guided demo state ----
-  const [view, setView] = useState("home");        // 'home' | 'editor'
-  const [videoAdded, setVideoAdded] = useState(false);
-  const [fillersRemoved, setFillersRemoved] = useState(false);
-  const [fillerStriking, setFillerStriking] = useState(false);
-  const [chaptersAdded, setChaptersAdded] = useState(false);
-  const [rearranged, setRearranged] = useState(false);
+  const [view, setView] = useState("editor");      // 'home' | 'editor' — drop into the empty editor
+  const [videoAdded, setVideoAdded] = useState(INITIAL.flags.videoAdded);
+  const [fillersRemoved, setFillersRemoved] = useState(INITIAL.flags.fillersRemoved);
+  const [fillerStriking, setFillerStriking] = useState(INITIAL.flags.fillerStriking);
+  const [chaptersAdded, setChaptersAdded] = useState(INITIAL.flags.chaptersAdded);
+  const [rearranged, setRearranged] = useState(INITIAL.flags.rearranged);
   const [planPhase, setPlanPhase] = useState(null); // null | 'proposed' | 'revised' | 'done'
   const [selection, setSelection] = useState(null); // null | 'video' | 'scene' — current canvas selection
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged };
@@ -285,6 +303,38 @@ function App() {
   };
   const drawerChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setConvo); else drawerSend(text); };
 
+  // ===== moderator: reset the editor into a set-up state =====
+  const applyScenario = (s) => {
+    setTweak("scenario", s);
+    const b = scenarioBaseline(s);
+    planId.current = null; reviewId.current = null;
+    clearTimeout(timer.current); clearTimeout(mistTimer.current);
+    setTabsById(b.tabsById); setPanes(b.panes);
+    setVideoAdded(b.flags.videoAdded); setFillersRemoved(b.flags.fillersRemoved);
+    setFillerStriking(b.flags.fillerStriking); setChaptersAdded(b.flags.chaptersAdded);
+    setRearranged(b.flags.rearranged);
+    setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
+    setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
+    setView("editor");
+  };
+
+  // ===== top chrome: publish tab + share popover =====
+  const openPublish = () => openSurface(panes[panes.length - 1].id, "publish");
+  const toggleShare = () => {
+    if (shareOpen) { setShareOpen(false); return; }
+    const r = shareRef.current && shareRef.current.getBoundingClientRect();
+    if (r) setSharePos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    setShareOpen(true);
+  };
+
+  // ===== empty Video tab: direct upload/record just adds media =====
+  // Direct manipulation, NOT a chat action — it must not touch Underlord. Only
+  // uploading *through* Underlord (its attachment) would make Underlord respond.
+  const addMedia = () => {
+    setTweak("scenario", "postUpload");
+    setVideoAdded(true);
+  };
+
   // ===== guided demo: entry from Chatty Home =====
   const enterEditor = ({ prompt, file }) => {
     setView("editor");
@@ -418,6 +468,7 @@ function App() {
     moveTabBefore: moveTab,
     planUpdated, onGo: onPlanGo, goPulse,
     onSelect: setSelection,
+    onAddMedia: addMedia,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
@@ -434,16 +485,33 @@ function App() {
                 onClick={() => setTweak("underlord", !ulOpen)}><Icons.robot/></button>
         <div className="title">Launch video — rough cut<span className="crumb">Marketing</span></div>
         <div className="spacer"></div>
-        <div className="status"><span className="dot"></span> Transcribed · 98%</div>
-        <button className={"chrome-btn icon" + (tlOpen ? " on" : "")} title="Toggle Timeline"
-                onClick={() => setTweak("timeline", !tlOpen)}><Icons.timeline/></button>
+        <div className="status synced"><Icons.checkCircle/> Synced</div>
         <div className="avatars">
           <i style={{background:"linear-gradient(135deg,#d58c6a,#8b3a5a)"}}></i>
           <i style={{background:"linear-gradient(135deg,#a3a3ee,#6f58bd)"}}></i>
         </div>
-        <button className="chrome-btn">Share</button>
-        <button className="chrome-btn primary">Publish</button>
+        <button ref={shareRef} className={"chrome-btn" + (shareOpen ? " on" : "")} onClick={toggleShare}>Share</button>
+        <button className="chrome-btn primary" onClick={openPublish}>Publish</button>
       </header>
+
+      {shareOpen && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:49 }} onClick={() => setShareOpen(false)}></div>
+          <div className="share-pop" style={{ top: sharePos.top, right: sharePos.right }}>
+            <div className="sp-title">Project access</div>
+            <div className="sp-invite">
+              <input placeholder="Invite by email"/>
+              <button>Invite</button>
+            </div>
+            <div className="sp-row">
+              <span className="sp-ic"><Icons.globe/></span>
+              <div className="sp-meta"><span className="sp-nm">Anyone with the link</span><span className="sp-sub">Can view</span></div>
+              <Icons.chevD/>
+            </div>
+            <button className="sp-copy"><Icons.share2/> Copy link</button>
+          </div>
+        </>
+      )}
 
       <div className="body" style={{ gridTemplateColumns: `${ulOpen ? t.ulWidth : 0}px 1fr` }}>
         <Underlord convo={convo} thinking={thinking} onSend={drawerSend}
@@ -455,7 +523,7 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
-            {t.contextBar && !mistOpen && <ContextBar selection={selection} dockCenterX={dockCenterX} dockBottom={dockBottom} onUnderlord={openMistDock}/>}
+            {t.contextBar && !mistOpen && videoAdded && <ContextBar selection={selection} dockCenterX={dockCenterX} dockBottom={dockBottom} onUnderlord={openMistDock}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
           </div>
           <Timeline open={tlOpen} height={t.tlHeight} onClose={() => setTweak("timeline", false)}/>
@@ -470,7 +538,7 @@ function App() {
                        onClose={closeMist} onDock={dockMist}/>
       )}
 
-      <Tweaks t={t} setTweak={setTweak}/>
+      <Tweaks t={t} setTweak={setTweak} applyScenario={applyScenario}/>
     </div>
   );
 }
@@ -523,9 +591,13 @@ function ContextBar({ selection, dockCenterX, dockBottom, onUnderlord }) {
   );
 }
 
-function Tweaks({ t, setTweak }) {
+function Tweaks({ t, setTweak, applyScenario }) {
   return (
     <TweaksPanel>
+      <TweakSection label="Scenario"/>
+      <TweakRadio label="Set-up state" value={t.scenario}
+        options={[{value:"empty",label:"Empty"},{value:"postUpload",label:"Uploaded"},{value:"roughCut",label:"Rough cut"}]}
+        onChange={applyScenario}/>
       <TweakSection label="Layout"/>
       <TweakToggle label="Underlord drawer" value={t.underlord} onChange={(v) => setTweak("underlord", v)}/>
       <TweakToggle label="Timeline drawer" value={t.timeline} onChange={(v) => setTweak("timeline", v)}/>

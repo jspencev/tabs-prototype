@@ -9,6 +9,7 @@ const SURFACE_DEFS = {
   effects:  { label: "Effects",  icon: "effects" },
   captions: { label: "Captions", icon: "captions" },
   scenes:   { label: "Scenes",   icon: "scenes" },
+  publish:  { label: "Publish",  icon: "globe" },
   settings: { label: "Settings", icon: "settings" },
 };
 window.SURFACE_DEFS = SURFACE_DEFS;
@@ -102,7 +103,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
         onDragLeave={() => setSplitOver(false)}
         onDrop={(e) => { if (splitOver) { e.preventDefault(); on.splitDrop(drag.id, pane.id); } setSplitOver(false); drag.set(null, null); }}>
         {activeTab && (
-          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect}/>
+          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect} onAddMedia={on.onAddMedia}/>
         )}
         {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(122,122,220,.12)",borderLeft:"2px solid var(--blurple-500)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
           <span style={{font:"600 12px/1 var(--font-sans)",color:"var(--blurple-700)"}}>Split here</span>
