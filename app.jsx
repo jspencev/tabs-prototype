@@ -12,6 +12,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "scenario": "empty"
 }/*EDITMODE-END*/;
 
+// Canvas effects live at app level so the command bar (rendered by App) and the
+// Video Properties panel drive one source of truth.
+const FX_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy", centerSpeaker: "csBusy" };
+const FX_DEFAULTS = { studioSound: false, ssBusy: false, ssIntensity: 70,
+  eyeContact: false, ecBusy: false, centerSpeaker: false, csBusy: false };
+
 let _seq = 100;
 const uid = (p) => `${p}-${_seq++}`;
 
@@ -77,7 +83,11 @@ function App() {
   const [chaptersAdded, setChaptersAdded] = useState(INITIAL.flags.chaptersAdded);
   const [rearranged, setRearranged] = useState(INITIAL.flags.rearranged);
   const [planPhase, setPlanPhase] = useState(null); // null | 'proposed' | 'revised' | 'done'
-  const [selection, setSelection] = useState(null); // null | 'video' | 'scene' — current canvas selection
+  const [selection, setSelection] = useState(null); // null | 'video' | 'scene' | 'text' — canvas selection
+  const [fx, setFx] = useState(FX_DEFAULTS);        // canvas effects (lifted from VideoSurface)
+  const [ssPop, setSsPop] = useState(null);         // Studio Sound intensity popover: { rect } | null
+  const [textLayerVisible, setTextLayerVisible] = useState(true);
+  const fxTimers = useRef({});
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged };
 
   const ulOpen = t.underlord;
@@ -344,6 +354,7 @@ function App() {
     setRearranged(b.flags.rearranged);
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
+    setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(true);
     setView("editor");
   };
 
@@ -356,12 +367,37 @@ function App() {
     setShareOpen(true);
   };
 
+  // ===== canvas effects (toggle with a brief processing state) =====
+  const toggleEffect = (key) => {
+    const bk = FX_BUSY[key];
+    const wasOff = !fx[key] && !fx[bk];
+    setFx((s) => {
+      if (s[key]) return { ...s, [key]: false };  // remove
+      if (s[bk]) return s;                          // already processing
+      return { ...s, [bk]: true };                  // start processing
+    });
+    if (wasOff) {
+      clearTimeout(fxTimers.current[key]);
+      fxTimers.current[key] = setTimeout(() => setFx((s) => ({ ...s, [bk]: false, [key]: true })), 1600);
+    }
+  };
+  const setSsIntensity = (v) => setFx((s) => ({ ...s, ssIntensity: v }));
+  // Studio Sound has an intensity popover (the canonical control). Any surface
+  // opens the same one, anchored to its trigger; applying kicks off processing.
+  const onStudioSound = (rect) => {
+    setSsPop({ rect });
+    if (!fx.studioSound && !fx.ssBusy) toggleEffect("studioSound");
+  };
+  const removeStudioSound = () => { if (fx.studioSound) toggleEffect("studioSound"); setSsPop(null); };
+  const deleteTextLayer = () => { setTextLayerVisible(false); setSelection(null); };
+
   // ===== empty Video tab: direct upload/record just adds media =====
   // Direct manipulation, NOT a chat action — it must not touch Underlord. Only
   // uploading *through* Underlord (its attachment) would make Underlord respond.
   const addMedia = () => {
     setTweak("scenario", "postUpload");
     setVideoAdded(true);
+    setTextLayerVisible(true);
   };
 
   // ===== upload *through* Underlord (paperclip attachment + send) =====
@@ -513,14 +549,19 @@ function App() {
     activate, close, openSurface, split: splitFromActive, splitDrop, moveTab,
     moveTabBefore: moveTab,
     planUpdated, onGo: onPlanGo, goPulse,
-    onSelect: setSelection,
     onAddMedia: addMedia,
+    sel: selection, setSel: setSelection,
+    fx, onEffect: toggleEffect, onStudioSound, textLayerVisible,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
   const activePane = panes[panes.length - 1];
   const dockCenterX = (ulOpen ? t.ulWidth : 0) + (window.innerWidth - (ulOpen ? t.ulWidth : 0)) / 2;
   const dockBottom = tlOpen ? t.tlHeight + 14 : 64; // ride above the timeline when it's open
+  // Command bar context: only the visible canvas (with media) drives selection-aware
+  // actions. With no media or off-canvas, the bar shows just Ask Underlord ("none").
+  const canvasVisible = panes.some((p) => { const tb = tabsById[p.activeId]; return tb && tb.kind === "video"; });
+  const cmdContext = (!videoAdded || !canvasVisible) ? "none" : (selection || "scene");
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -569,12 +610,35 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
-            {t.contextBar && !mistOpen && videoAdded && <ContextBar selection={selection} dockCenterX={dockCenterX} dockBottom={dockBottom} onUnderlord={openMistDock}/>}
+            {t.contextBar && !mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
           </div>
           <Timeline open={tlOpen} height={t.tlHeight} onClose={() => setTweak("timeline", false)}/>
         </div>
       </div>
+
+      {ssPop && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setSsPop(null)}></div>
+          <div className="ss-pop" style={{ position:"fixed", top: ssPop.rect.bottom + 6, left: ssPop.rect.left }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="ssp-head"><Icons.audio/> Studio Sound
+              <span className="ssp-val">{fx.ssBusy ? "Applying…" : fx.ssIntensity + "%"}</span></div>
+            {fx.ssBusy ? (
+              <div className="ssp-row"><span className="pspin"></span><span className="ssp-lab">Processing…</span></div>
+            ) : (
+              <>
+                <div className="ssp-row">
+                  <span className="ssp-lab">Intensity</span>
+                  <input className="pslider" type="range" min="0" max="100" step="1" value={fx.ssIntensity}
+                         onChange={(e) => setSsIntensity(Number(e.target.value))}/>
+                </div>
+                <button className="ssp-remove" onClick={removeStudioSound}>Remove Studio Sound</button>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {mistOpen && (
         <EphemeralChat docked={mistDocked} castPos={castRef.current}
@@ -608,32 +672,97 @@ function TimelinePull({ onOpen }) {
   );
 }
 
-// Selection-aware contextual toolbar. Toolsets mirror Descript's real canvas
-// toolbars (MediaRefToolbar for clips, CanvasSceneToolbar for scenes). Tools are
-// representative; only "Ask Underlord" is wired.
-const CTX_TOOLSETS = {
-  video: { label: "Video clip", tools: [
-    ["replace", "Replace"], ["fit", "Crop"], ["effects", "Effects"],
-    ["audio", "Studio Sound"], ["sparkle", "Eye Contact"], ["color", "Color"],
-  ] },
-  scene: { label: "Scene", tools: [
-    ["scenes", "Layout"], ["color", "Background"], ["effects", "Transition"], ["media", "Layers"],
-  ] },
+// Command bar: contextual ACTIONS (verbs) per canvas selection. Properties live
+// in the Properties panel, not here. Ask Underlord is the "describe it" action.
+// [icon, tooltip, kind]; kind drives an action menu or (for delete) a handler.
+const CMD_SETS = {
+  scene: [["layout", "Change layout", "layout"], ["plus", "Add element", "add"], ["captions", "Captions", "captions"]],
+  video: [["effects", "Effects", "effects"], ["crop", "Crop", "crop"], ["replace", "Replace media", "replace"]],
+  text:  [["effects", "Effects", "textfx"], ["wand", "Animate", "animate"], ["trash", "Delete", "delete"]],
+  none:  [],
 };
-CTX_TOOLSETS.none = { label: null, tools: CTX_TOOLSETS.scene.tools };
 
-function ContextBar({ selection, dockCenterX, dockBottom, onUnderlord }) {
-  const set = CTX_TOOLSETS[selection] || CTX_TOOLSETS.none;
+// Representative action menus (these "make sense" but don't deeply function —
+// full behavior lands in later stages). Grounded in Descript's real labels.
+const REP_MENUS = {
+  layout:   { label: "Change layout", items: ["Speaker", "Camera", "Screen", "Title", "Big Fact", "Quote"] },
+  add:      { label: "Add element", items: ["Text", "Subtitle", "Title", "Shape", "Media", "Speaker name"] },
+  captions: { label: "Captions", items: ["This scene", "All scenes"] },
+  crop:     { label: "Crop", items: ["Original", "Square", "Portrait", "Landscape", "Reset"] },
+  replace:  { label: "Replace media", items: ["From computer", "From stock", "From project files"] },
+  textfx:   { label: "Effects", items: ["Shadow", "Outline", "Background", "Glow"] },
+  animate:  { label: "Animation", items: ["Fade in", "Slide in", "Pop", "Typewriter"] },
+};
+
+function CmdEffectsMenu({ fx, onEffect, onStudioSound, onClose, left, bottom }) {
+  const rows = [
+    ["studioSound", "ssBusy", "Studio Sound", "audio"],
+    ["eyeContact", "ecBusy", "Eye Contact", "sparkle"],
+    ["centerSpeaker", "csBusy", "Center active speaker", "user"],
+  ];
   return (
-    <div className="ctx-bar" style={{ left: dockCenterX, bottom: dockBottom }}>
-      {set.label && <span className="ctx-label">{set.label}</span>}
-      {set.tools.map(([icon, label]) => {
+    <div className="menu cmd-menu" style={{ position:"fixed", left, bottom }} onClick={(e) => e.stopPropagation()}>
+      <div className="mlabel">Effects</div>
+      {rows.map(([key, bk, label, icon]) => {
         const I = Icons[icon] || Icons.wand;
-        return <button className="fb" key={label} aria-label={label} data-tip={label}><I/></button>;
+        const on = fx[key], busy = fx[bk];
+        // Studio Sound hands off to the shared intensity popover; others toggle.
+        const click = (e) => {
+          if (key === "studioSound") { const r = e.currentTarget.getBoundingClientRect(); onClose(); onStudioSound(r); }
+          else onEffect(key);
+        };
+        return (
+          <div key={key} className={"fx-row" + (on ? " on" : "")} onClick={click}>
+            <span className="fx-ic">{busy ? <span className="pspin"></span> : <I/>}</span>
+            <span className="fx-nm">{label}</span>
+            <span className="fx-state">{busy ? "Applying…" : on ? "On" : ""}</span>
+          </div>
+        );
       })}
-      <div className="sep"></div>
-      <button className="fb ul" onClick={onUnderlord} aria-label="Ask Underlord" data-tip="Ask Underlord"><Icons.robot/></button>
     </div>
+  );
+}
+
+function CmdRepMenu({ kind, left, bottom }) {
+  const m = REP_MENUS[kind];
+  if (!m) return null;
+  return (
+    <div className="menu cmd-menu" style={{ position:"fixed", left, bottom }} onClick={(e) => e.stopPropagation()}>
+      <div className="mlabel">{m.label}</div>
+      {m.items.map((it) => <div className="mi" key={it}>{it}</div>)}
+    </div>
+  );
+}
+
+function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onUnderlord, dockCenterX, dockBottom }) {
+  const [menu, setMenu] = useState(null); // { kind, left, bottom }
+  const set = CMD_SETS[context] || CMD_SETS.none;
+  // Selection changes can strand an open menu — close it when context changes.
+  useEffect(() => { setMenu(null); }, [context]);
+  const onAction = (kind, e) => {
+    if (kind === "delete") { onDeleteText(); return; }
+    const r = e.currentTarget.getBoundingClientRect();
+    setMenu((m) => (m && m.kind === kind) ? null : { kind, left: r.left, bottom: window.innerHeight - r.top + 8 });
+  };
+  return (
+    <>
+      {menu && <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setMenu(null)}></div>}
+      <div className="cmd-bar" style={{ left: dockCenterX, bottom: dockBottom }}>
+        {set.map(([icon, label, kind]) => {
+          const I = Icons[icon] || Icons.wand;
+          return <button key={kind} className={"fb" + (menu && menu.kind === kind ? " on" : "")}
+                         aria-label={label} data-tip={label} onClick={(e) => onAction(kind, e)}><I/></button>;
+        })}
+        {set.length > 0 && <div className="sep"></div>}
+        <button className="fb ul" onClick={onUnderlord} aria-label="Ask Underlord" data-tip="Ask Underlord"><Icons.robot/></button>
+      </div>
+      {menu && menu.kind === "effects" && (
+        <CmdEffectsMenu fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} onClose={() => setMenu(null)} left={menu.left} bottom={menu.bottom}/>
+      )}
+      {menu && menu.kind !== "effects" && (
+        <CmdRepMenu kind={menu.kind} left={menu.left} bottom={menu.bottom}/>
+      )}
+    </>
   );
 }
 

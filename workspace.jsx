@@ -96,7 +96,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
 
       <div className="pane-content">
         {activeTab && (
-          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect} onAddMedia={on.onAddMedia}/>
+          <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onAddMedia={on.onAddMedia} sel={on.sel} setSel={on.setSel} fx={on.fx} onEffect={on.onEffect} onStudioSound={on.onStudioSound} textLayerVisible={on.textLayerVisible}/>
         )}
       </div>
 

@@ -273,7 +273,7 @@ function SceneProperties({ sc, set, onClose }) {
   );
 }
 
-function VideoProperties({ vid, set, apply, onStudioSound, onClose, side }) {
+function VideoProperties({ vid, set, fx, onEffect, onStudioSound, onClose, side }) {
   return (
     <div className={"props" + (side === "left" ? " left" : "")} onClick={(e) => e.stopPropagation()}>
       <div className="props-h">
@@ -337,13 +337,15 @@ function VideoProperties({ vid, set, apply, onStudioSound, onClose, side }) {
         </div>
 
         <div className="psec">
-          <div className="lab">Underlord</div>
-          <div className="prow">
-            <EffectPill on={vid.studioSound} busy={vid.ssBusy} icon="audio" label="Studio Sound"
-                        value={vid.studioSound ? vid.ssIntensity + "%" : null}
+          <div className="lab">Effects</div>
+          <div className="prow" style={{ flexWrap: "wrap", gap: 6 }}>
+            <EffectPill on={fx.studioSound} busy={fx.ssBusy} icon="audio" label="Studio Sound"
+                        value={fx.studioSound ? fx.ssIntensity + "%" : null}
                         onClick={(rect) => onStudioSound(rect)}/>
-            <EffectPill on={vid.eyeContact} busy={vid.ecBusy} icon="sparkle" label="Eye Contact"
-                        onClick={() => apply("eyeContact")}/>
+            <EffectPill on={fx.eyeContact} busy={fx.ecBusy} icon="sparkle" label="Eye Contact"
+                        onClick={() => onEffect("eyeContact")}/>
+            <EffectPill on={fx.centerSpeaker} busy={fx.csBusy} icon="user" label="Center active speaker"
+                        onClick={() => onEffect("centerSpeaker")}/>
           </div>
         </div>
 

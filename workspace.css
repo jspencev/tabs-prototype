@@ -112,6 +112,8 @@
 .ss-pop .ssp-head .ssp-val { margin-left:auto; font:600 11px/1 var(--font-mono); color: var(--fg-3); }
 .ss-pop .ssp-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .ss-pop .ssp-row .ssp-lab { font:500 11px/1 var(--font-sans); color: var(--fg-2); min-width:56px; }
+.ss-pop .pspin { width:13px; height:13px; flex:0 0 13px; border-radius:999px; border:2px solid rgba(122,122,220,.3);
+  border-top-color: var(--blurple-500); animation: spin .7s linear infinite; display:inline-block; }
 .ss-pop .ssp-remove { width:100%; height:28px; border:0; border-radius:7px; background: var(--surf-hover);
   color: var(--fg-1); font:500 11.5px/1 var(--font-sans); }
 .ss-pop .ssp-remove:hover { background: var(--danger-bg-secondary); color: var(--danger-fg-primary); }
@@ -371,30 +373,58 @@
 .playhead { position:absolute; top:-2px; bottom:-2px; width:2px; background: var(--blurple-600); z-index:3; box-shadow:0 0 6px rgba(95,95,194,.4); }
 .playhead::before { content:""; position:absolute; top:-3px; left:-4px; border:5px solid transparent; border-top-color: var(--blurple-600); }
 
-/* ============ Contextual toolbar (selection-aware, docks where mist docks) ============ */
-.ctx-bar { position:fixed; bottom:64px; transform:translateX(-50%); z-index:30;
+/* ============ Command bar (selection-aware actions, docks where mist docks) ============ */
+.cmd-bar { position:fixed; bottom:64px; transform:translateX(-50%); z-index:40;
   display:flex; align-items:center; gap:4px; padding:6px; border-radius:14px;
   background: rgba(255,255,255,.85); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   border:1px solid var(--line-med); box-shadow: var(--elevation-5);
   animation: ctx-rise var(--dur-base) var(--ease-decelerate);
   transition: bottom var(--dur-base) var(--ease-decelerate); }
 @keyframes ctx-rise { from { opacity:0; transform:translateX(-50%) translateY(6px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-.ctx-bar .ctx-label { padding:0 8px 0 6px; font:600 10px/1 var(--font-sans); letter-spacing:.04em;
-  text-transform:uppercase; color: var(--fg-3); }
-.ctx-bar .fb { position:relative; width:34px; height:34px; padding:0; border-radius:9px; border:0; background:transparent; color: var(--fg-2);
+.cmd-bar .fb { position:relative; width:34px; height:34px; padding:0; border-radius:9px; border:0; background:transparent; color: var(--fg-2);
   display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
-.ctx-bar .fb:hover { background: var(--surf-hover); color: var(--fg-1); }
+.cmd-bar .fb:hover { background: var(--surf-hover); color: var(--fg-1); }
+.cmd-bar .fb.on { background: var(--surf-active); color: var(--fg-1); }
 /* instant tooltip on hover (Descript tooltips are dark) */
-.ctx-bar .fb::after { content: attr(data-tip); position:absolute; bottom: calc(100% + 8px); left:50%;
+.cmd-bar .fb::after { content: attr(data-tip); position:absolute; bottom: calc(100% + 8px); left:50%;
   transform: translateX(-50%); padding:4px 8px; border-radius:6px; white-space:nowrap; pointer-events:none;
   background: var(--surface-inverse); color:#fff;
   font:500 11px/1 var(--font-sans); box-shadow: var(--elevation-3); opacity:0; }
-.ctx-bar .fb:hover::after { opacity:1; }
-.ctx-bar .fb svg{ width:16px;height:16px; }
-.ctx-bar .sep { width:1px; height:20px; background: var(--line-med); margin:0 2px; }
-.ctx-bar .fb.ul { background: var(--accent-bg-secondary); color: var(--accent-fg-primary); }
-.ctx-bar .fb.ul:hover { background: rgba(122,122,220,.18); }
-.ctx-bar .kbd { margin-left:4px; font:500 10px/1 var(--font-mono); padding:2px 5px; border-radius:4px; background: var(--surf-hover); color: var(--fg-3); }
+.cmd-bar .fb:hover::after { opacity:1; }
+.cmd-bar .fb svg{ width:16px;height:16px; }
+.cmd-bar .sep { width:1px; height:20px; background: var(--line-med); margin:0 2px; }
+.cmd-bar .fb.ul { background: var(--accent-bg-secondary); color: var(--accent-fg-primary); }
+.cmd-bar .fb.ul:hover { background: rgba(122,122,220,.18); }
+
+/* command-bar action menus (open above the bar) */
+.cmd-menu { z-index:41; min-width:220px; }
+.cmd-menu .fx-row { display:flex; align-items:center; gap:9px; padding:8px; border-radius:6px; cursor:pointer; }
+.cmd-menu .fx-row:hover { background: var(--surf-hover); }
+.cmd-menu .fx-row.on { background: var(--accent-bg-secondary); }
+.cmd-menu .fx-row .fx-ic { width:18px; height:18px; flex:0 0 18px; display:flex; align-items:center; justify-content:center; color: var(--fg-2); }
+.cmd-menu .fx-row.on .fx-ic { color: var(--accent-fg-primary); }
+.cmd-menu .fx-row .fx-ic svg { width:16px; height:16px; }
+.cmd-menu .fx-row .fx-nm { flex:1; font:500 12.5px/1.2 var(--font-sans); color: var(--fg-1); }
+.cmd-menu .fx-row .fx-state { font:600 10px/1 var(--font-sans); color: var(--accent-fg-primary); text-transform:uppercase; letter-spacing:.04em; }
+.cmd-menu .fx-row .pspin { width:13px; height:13px; border-radius:999px; border:2px solid rgba(122,122,220,.3);
+  border-top-color: var(--blurple-500); animation: spin .7s linear infinite; display:inline-block; }
+
+/* canvas effect badges (applied / processing) */
+.fx-badges { position:absolute; top:10px; left:10px; z-index:3; display:flex; flex-direction:column; gap:5px; align-items:flex-start; }
+.fx-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:999px;
+  background: rgba(0,0,0,.6); color:#fff; font:600 10px/1 var(--font-sans); letter-spacing:.02em; }
+.fx-badge svg { width:12px; height:12px; }
+.fx-badge .pspin { width:11px; height:11px; border-radius:999px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+  animation: spin .7s linear infinite; display:inline-block; }
+
+/* selectable lower-third text layer on the canvas */
+.lower-third { position:absolute; left:6%; bottom:12%; z-index:2; padding:6px 4px; cursor:pointer; }
+.lower-third .lt-name { line-height:1.1; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+.lower-third .lt-role { font:500 13px/1.2 var(--font-sans); color: rgba(255,255,255,.82); margin-top:3px; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+.lower-third.sel { outline:1.5px solid var(--blurple-500); outline-offset:4px; border-radius:2px; }
+.lower-third .h { position:absolute; width:7px; height:7px; background:#fff; border:1.5px solid var(--blurple-500); border-radius:1px; }
+.lower-third .h.tl { left:-7px; top:-7px; } .lower-third .h.tr { right:-7px; top:-7px; }
+.lower-third .h.bl { left:-7px; bottom:-7px; } .lower-third .h.br { right:-7px; bottom:-7px; }
 
 /* bottom pull-up handle for the timeline */
 .tl-pull {

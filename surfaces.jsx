@@ -17,9 +17,6 @@ function EffectPill({ on, busy, icon, label, value, onClick }) {
 }
 window.EffectPill = EffectPill;
 
-// maps an effect key to its "processing" flag on the vid state
-const EFFECT_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy" };
-
 // Shared empty-state upload target used by both the Video canvas and the Script
 // tab: upload hitbox + Record + drag/drop, then a brief fake ingest before
 // handing off via onAddMedia. Direct manipulation — it never touches Underlord.
@@ -62,9 +59,11 @@ function UploadEmpty({ onAddMedia }) {
 }
 window.UploadEmpty = UploadEmpty;
 
-function VideoSurface({ demo, onSelect, onAddMedia }) {
+// VideoSurface is controlled: selection (sel/setSel) and effects (fx) are owned
+// by App so the bottom command bar and the property panels share one source of
+// truth. Pure attributes (scale, rotation, etc.) stay local for the panels.
+function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, onAddMedia }) {
   const added = !!(demo && demo.videoAdded);
-  const [sel, setSel] = useState(null); // null | 'video' | 'scene'
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
     transition: "fade", transDur: 0.5, length: 8, blur: 0,
@@ -72,38 +71,25 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
   const [vid, setVid] = useState({
     clip: "MM 3.2.26 — full", scale: 100, rotation: 0, opacity: 100, radius: 0,
     volume: 80, speed: 1,
-    studioSound: false, ssBusy: false, ssIntensity: 70,
-    eyeContact: false, ecBusy: false,
   });
-  const [ssPop, setSsPop] = useState(null); // { rect } when the Studio Sound intensity popover is open
+  const [txt, setTxt] = useState({
+    text: "Neda Navab", fontFamily: "Booton", fontSize: 30, weight: 600, italic: false,
+    textAlign: "left", verticalAlign: "bottom", lineHeight: 1.1, letterSpacing: 0,
+    color: "#FFF8F4", box: "auto-width", opacity: 100,
+  });
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
+  const setText = (k, v) => setTxt((s) => ({ ...s, [k]: v }));
 
-  // Report the current canvas selection up so the contextual toolbar can adapt.
-  useEffect(() => { if (onSelect) onSelect(sel); }, [sel]);
-  useEffect(() => () => { if (onSelect) onSelect(null); }, []);
+  // Clear the app-level selection when the canvas surface unmounts.
+  useEffect(() => () => { if (setSel) setSel(null); }, []);
 
-  // Eye Contact: apply -> async processing (spinner) -> applied; click again removes.
-  const applyEffect = (key) => {
-    const bk = EFFECT_BUSY[key];
-    if (vid[key]) { setVideo(key, false); return; }   // remove
-    if (vid[bk]) return;                                // already processing
-    setVideo(bk, true);
-    setTimeout(() => setVid((s) => ({ ...s, [bk]: false, [key]: true })), 2000);
+  const fxActive = fx && (fx.studioSound || fx.ssBusy || fx.eyeContact || fx.ecBusy || fx.centerSpeaker || fx.csBusy);
+  const badge = (on, busy, icon, label) => {
+    if (!on && !busy) return null;
+    const I = Icons[icon] || Icons.wand;
+    return <span className="fx-badge">{busy ? <span className="pspin"></span> : <I/>}{busy ? label + "…" : label}</span>;
   };
-
-  // Studio Sound: apply -> processing -> applied, then auto-open the Intensity popover.
-  // Clicking the (already-on) pill re-opens the popover; Remove lives inside it.
-  const onStudioSound = (rect) => {
-    if (vid.studioSound) { setSsPop({ rect }); return; }   // re-open
-    if (vid.ssBusy) return;
-    setVideo("ssBusy", true);
-    setTimeout(() => {
-      setVid((s) => ({ ...s, ssBusy: false, studioSound: true }));
-      setSsPop({ rect });
-    }, 2000);
-  };
-  const removeStudioSound = () => { setVideo("studioSound", false); setSsPop(null); };
 
   return (
     <div className="surf-video">
@@ -113,12 +99,12 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
           <Icons.scenes/> {added ? sc.name : "No scenes yet"}
         </button>
         <span className="cpill">1920 × 1080</span>
-        {sel === "video" && <>
-          <EffectPill on={vid.studioSound} busy={vid.ssBusy} icon="audio" label="Studio Sound"
-                      value={vid.studioSound ? vid.ssIntensity + "%" : null}
+        {sel === "video" && fx && <>
+          <EffectPill on={fx.studioSound} busy={fx.ssBusy} icon="audio" label="Studio Sound"
+                      value={fx.studioSound ? fx.ssIntensity + "%" : null}
                       onClick={(rect) => onStudioSound(rect)}/>
-          <EffectPill on={vid.eyeContact} busy={vid.ecBusy} icon="sparkle" label="Eye Contact"
-                      onClick={() => applyEffect("eyeContact")}/>
+          <EffectPill on={fx.eyeContact} busy={fx.ecBusy} icon="sparkle" label="Eye Contact"
+                      onClick={() => onEffect("eyeContact")}/>
         </>}
         <span className="sp"></span>
         <span className="zoom">Fit</span>
@@ -129,6 +115,23 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
             <img src="video-thumb.png" alt="Video"
                  style={{ opacity: vid.opacity / 100, transform: `scale(${vid.scale / 100})` }}
                  onClick={(e) => { e.stopPropagation(); setSel("video"); }}/>
+            {fxActive && (
+              <div className="fx-badges">
+                {badge(fx.studioSound, fx.ssBusy, "audio", "Studio Sound")}
+                {badge(fx.eyeContact, fx.ecBusy, "sparkle", "Eye Contact")}
+                {badge(fx.centerSpeaker, fx.csBusy, "user", "Center speaker")}
+              </div>
+            )}
+            {textLayerVisible && (
+              <div className={"lower-third" + (sel === "text" ? " sel" : "")}
+                   onClick={(e) => { e.stopPropagation(); setSel("text"); }}>
+                <div className="lt-name" style={{ fontFamily: (FONT_STACK[txt.fontFamily] || "inherit"),
+                     fontSize: txt.fontSize, fontWeight: txt.weight, color: txt.color,
+                     fontStyle: txt.italic ? "italic" : "normal", opacity: txt.opacity / 100 }}>{txt.text}</div>
+                <div className="lt-role">Compass · Real Estate</div>
+                {sel === "text" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
+              </div>
+            )}
             {sel === "video" && <div className="vid-frame" style={{ borderRadius: vid.radius }}>
               <span className="tag">Video</span>
               <span className="h tl"></span><span className="h tr"></span>
@@ -139,24 +142,9 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
           <UploadEmpty onAddMedia={onAddMedia}/>
         )}
       </div>
-      {sel === "video" && <VideoProperties vid={vid} set={setVideo} apply={applyEffect} onStudioSound={onStudioSound} onClose={() => setSel(null)} side="right"/>}
+      {sel === "video" && <VideoProperties vid={vid} set={setVideo} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} onClose={() => setSel(null)} side="right"/>}
       {sel === "scene" && <SceneProperties sc={sc} set={setScene} onClose={() => setSel(null)}/>}
-
-      {sel === "video" && ssPop && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={() => setSsPop(null)}></div>
-          <div className="ss-pop" style={{ position: "fixed", top: ssPop.rect.bottom + 6, left: ssPop.rect.left }}
-               onClick={(e) => e.stopPropagation()}>
-            <div className="ssp-head"><Icons.audio/> Studio Sound <span className="ssp-val">{vid.ssIntensity}%</span></div>
-            <div className="ssp-row">
-              <span className="ssp-lab">Intensity</span>
-              <input className="pslider" type="range" min="0" max="100" step="1" value={vid.ssIntensity}
-                     onChange={(e) => setVideo("ssIntensity", Number(e.target.value))}/>
-            </div>
-            <button className="ssp-remove" onClick={removeStudioSound}>Remove Studio Sound</button>
-          </div>
-        </>
-      )}
+      {sel === "text"  && <TextProperties st={txt} set={setText} onClose={() => setSel(null)} side="right"/>}
     </div>
   );
 }
@@ -526,9 +514,9 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect, onAddMedia }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo} onSelect={onSelect} onAddMedia={onAddMedia}/>;
+    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} onAddMedia={onAddMedia}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;

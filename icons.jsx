@@ -108,6 +108,11 @@ const Icons = {
   youtube: _s(<><rect x="1.7" y="3.6" width="12.6" height="8.8" rx="2.4"/><path d="M6.6 6.4 10.4 8l-3.8 1.6z" fill="currentColor" stroke="none"/></>),
   drive:   _s(<><path d="M8 2.6 14 13H2z"/></>),
   checkCircle:_s(<><circle cx="8" cy="8" r="6.3"/><path d="m5.3 8.2 1.9 1.9 3.5-3.9"/></>),
+
+  // command bar actions
+  layout:  _s(<><rect x="2" y="2.6" width="12" height="10.8" rx="1.6"/><path d="M2 9.4h12"/><path d="M6 9.4v4"/></>),
+  crop:    _s(<><path d="M4.5 1.5v9a1 1 0 0 0 1 1h9"/><path d="M1.5 4.5h9a1 1 0 0 1 1 1v9"/></>),
+  trash:   _s(<><path d="M3 4.4h10"/><path d="M6.4 4.4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1.4"/><path d="M4.6 4.4l.5 8a1 1 0 0 0 1 .95h3.8a1 1 0 0 0 1-.95l.5-8"/></>),
 };
 
 window.Icons = Icons;
