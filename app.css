@@ -215,6 +215,21 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--fg-1); font: var(--underlord-fw) var(--underlord-fs)/var(--underlord-lh) var(--font-sans);
   max-height:118px; padding:10px 12px 4px; }
 .composer-box textarea::placeholder { color: var(--input-fg-placeholder); }
+/* pending attachment chip (paperclip upload, not yet sent) */
+.composer-attach { padding:8px 8px 0; }
+.ca-chip { display:inline-flex; align-items:center; gap:7px; max-width:100%; padding:5px 6px 5px 9px;
+  background: var(--surface-elevated); border:1px solid var(--line-med); border-radius: var(--radius-md); }
+.ca-chip .ti { display:flex; }
+.ca-chip .ti svg { width:14px; height:14px; color: var(--accent-fg-primary); }
+.ca-chip .nm { font:500 11.5px/1.2 var(--font-sans); color: var(--fg-1);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ca-chip .meta { flex:0 0 auto; font:500 10px/1 var(--font-mono); color: var(--fg-3); }
+.ca-chip .ca-x { width:18px; height:18px; flex:0 0 18px; border:0; border-radius: var(--radius-xs);
+  background:transparent; color: var(--fg-3); display:flex; align-items:center; justify-content:center; }
+.ca-chip .ca-x:hover { background: var(--surf-hover); color: var(--fg-1); }
+.ca-chip .ca-x svg { width:12px; height:12px; }
+/* attach menu (anchored above the paperclip) */
+.attach-menu { min-width:220px; }
 .composer-bar { display:flex; align-items:center; gap:2px; padding:4px 8px 8px; }
 .cbtn { width:28px; height:28px; border-radius:999px; border:0; background:transparent; color: var(--grey-800);
   display:flex; align-items:center; justify-content:center; transition: background var(--dur-fast); }

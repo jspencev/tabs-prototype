@@ -11,17 +11,21 @@ const relTime = (ts) => {
   return Math.floor(h / 24) + "d";
 };
 
-function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onReview, onClose }) {
+function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onReview, onClose }) {
   const [draft, setDraft] = useState("");
   const [histOpen, setHistOpen] = useState(false);
   const [histPos, setHistPos] = useState({ top: 0, right: 0 });
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState("");
   const [skillsPos, setSkillsPos] = useState({ left: 0, bottom: 0 });
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachPos, setAttachPos] = useState({ left: 0, bottom: 0 });
+  const [pending, setPending] = useState(null); // { name, meta } attached but not yet sent
   const bodyRef = useRef(null);
   const taRef = useRef(null);
   const histRef = useRef(null);
   const composerRef = useRef(null);
+  const clipRef = useRef(null);
 
   const SKILLS = (window.DEMO && window.DEMO.skills) || [];
   const filteredSkills = SKILLS.filter((s) => s.label.toLowerCase().includes(skillFilter.toLowerCase()));
@@ -45,12 +49,31 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
     setHistOpen(true);
   };
 
+  const toggleAttach = () => {
+    if (attachOpen) { setAttachOpen(false); return; }
+    const r = clipRef.current && clipRef.current.getBoundingClientRect();
+    if (r) setAttachPos({ left: r.left, bottom: window.innerHeight - r.top + 6 });
+    setAttachOpen(true);
+  };
+  const attachDemoFile = () => {
+    const D = window.DEMO || {};
+    setPending({ name: D.fileName, meta: D.duration });
+    setAttachOpen(false);
+  };
+
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [convo, thinking]);
 
   const send = () => {
     const v = draft.trim();
+    if (pending) {
+      const file = pending;
+      setPending(null); setDraft("");
+      if (taRef.current) taRef.current.style.height = "auto";
+      onUploadSend(v, file);
+      return;
+    }
     if (!v) return;
     onSend(v); setDraft("");
     if (taRef.current) taRef.current.style.height = "auto";
@@ -165,16 +188,37 @@ function Underlord({ convo, thinking, onSend, onOpenArtifact, onChip, onNewChat,
         </>
       )}
 
+      {attachOpen && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setAttachOpen(false)}></div>
+          <div className="menu attach-menu" style={{ position:"fixed", left: attachPos.left, bottom: attachPos.bottom }}>
+            <div className="mlabel">Add files</div>
+            <div className="mi" onClick={attachDemoFile}><Icons.upload/> Upload from computer</div>
+            <div className="mi" onClick={attachDemoFile}><Icons.folder/> Attach from other projects</div>
+          </div>
+        </>
+      )}
+
       <div className="ul-composer">
         <div className="composer-box" ref={composerRef}>
+          {pending && (
+            <div className="composer-attach">
+              <span className="ca-chip">
+                <span className="ti"><Icons.video/></span>
+                <span className="nm">{pending.name}</span>
+                {pending.meta && <span className="meta">{pending.meta}</span>}
+                <button className="ca-x" title="Remove attachment" onClick={() => setPending(null)}><Icons.x/></button>
+              </span>
+            </div>
+          )}
           <textarea ref={taRef} rows="1" value={draft} placeholder="Ask Underlord, @ to add context"
                     onChange={grow} onKeyDown={onKey}/>
           <div className="composer-bar">
-            <button className="cbtn" title="Upload video, audio, image, or PDF files"><Icons.paperclip/></button>
+            <button ref={clipRef} className={"cbtn" + (attachOpen ? " on" : "")} title="Upload video, audio, image, or PDF files" onClick={toggleAttach}><Icons.paperclip/></button>
             <button className="cbtn" title="Add context"><Icons.at/></button>
             <button className="cmodel" title="Model">Auto <Icons.chevD/></button>
             <span className="sp"></span>
-            <button className="send" disabled={!draft.trim()} onClick={send}><Icons.arrowUp/></button>
+            <button className="send" disabled={!draft.trim() && !pending} onClick={send}><Icons.arrowUp/></button>
           </div>
         </div>
         <div className="ul-hint">Underlord can make mistakes. <b>Learn more</b></div>

@@ -293,6 +293,13 @@ function App() {
 
   const drawerSend = (text) => {
     const t = text.toLowerCase().trim();
+    // Precondition gate: with no media, Underlord can't pretend to do anything —
+    // it plays the upload-guidance line instead of any scripted beat.
+    if (!videoAdded) {
+      setConvo((c) => [...c, { role: "user", text },
+        { role: "ai", text: "I don’t see any media yet — upload a file with the paperclip to get started." }]);
+      return;
+    }
     if (planPhase === "proposed" || planPhase === "revised") {
       if (/^(go|approve|run it|looks good|do it|ship it)/.test(t)) { setConvo((c) => [...c, { role: "user", text }]); onPlanGo(); return; }
       revisePlan(text); return;
@@ -333,6 +340,23 @@ function App() {
   const addMedia = () => {
     setTweak("scenario", "postUpload");
     setVideoAdded(true);
+  };
+
+  // ===== upload *through* Underlord (paperclip attachment + send) =====
+  // The one upload path that legitimately makes Underlord respond. Underlord is
+  // on rails: this plays a scripted acknowledgement, it does not execute anything.
+  const uploadViaUnderlord = (text, file) => {
+    const msg = { role: "user", file };
+    if (text) msg.text = text;
+    setConvo((c) => [...c, msg]);
+    setTweak("scenario", "postUpload");
+    setVideoAdded(true);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setConvo((c) => [...c, { role: "ai", text: "Added your recording to the project. What would you like to do next?" }]);
+    }, 1100);
   };
 
   // ===== guided demo: entry from Chatty Home =====
@@ -514,7 +538,7 @@ function App() {
       )}
 
       <div className="body" style={{ gridTemplateColumns: `${ulOpen ? t.ulWidth : 0}px 1fr` }}>
-        <Underlord convo={convo} thinking={thinking} onSend={drawerSend}
+        <Underlord convo={convo} thinking={thinking} onSend={drawerSend} onUploadSend={uploadViaUnderlord}
                    onOpenArtifact={onOpenArtifact} onChip={drawerChip}
                    onNewChat={newChat} history={chatHistory} onSelectHistory={selectChat}
                    onSkill={onSkill} onPlanGo={onPlanGo} onReview={openReview}

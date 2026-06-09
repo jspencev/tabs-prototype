@@ -451,6 +451,47 @@ function PublishSurface() {
   );
 }
 
+// ── Media (project Files) ────────────────────────────────────────────────────
+// Mirrors Descript's project "Files" panel: empty -> "Drag & drop or click to
+// add files" + "Add files"; filled -> the demo file as a row. Upload is the same
+// immediate fake ingest as the canvas (direct manipulation, no Underlord chatter).
+function MediaSurface({ demo, onAddMedia }) {
+  const added = !!(demo && demo.videoAdded);
+  const D = window.DEMO || {};
+  const [dragOver, setDragOver] = useState(false);
+  const add = () => { if (onAddMedia) onAddMedia(); };
+  return (
+    <div className="surf-media">
+      <div className="md-bar">
+        <span className="md-title">Files</span>
+        <span className="sp"></span>
+        <button className="md-add" onClick={add}><Icons.plus/> Add files</button>
+      </div>
+      {added ? (
+        <div className="md-list">
+          <div className="md-item">
+            <span className="md-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>
+            <span className="md-meta">
+              <span className="md-nm">{D.fileName}</span>
+              <span className="md-sub">Video · {D.duration}</span>
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className={"md-empty" + (dragOver ? " drag" : "")}
+             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+             onDragLeave={() => setDragOver(false)}
+             onDrop={(e) => { e.preventDefault(); setDragOver(false); add(); }}>
+          <button className="md-drop" onClick={add}>
+            <span className="md-ic"><Icons.folder/></span>
+            <span className="md-dt">Drag &amp; drop or click to add files</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Placeholder({ icon, title, body }) {
   const I = Icons[icon] || Icons.media;
   return (
@@ -470,7 +511,7 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect, onAdd
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
     case "script": return <ScriptSurface demo={demo}/>;
-    case "media":  return <Placeholder icon="media" title="Media library" body="Drag clips, images and recordings here. This whole surface is just a tab now."/>;
+    case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;
     case "captions":return <Placeholder icon="captions" title="Captions" body="Style, position and time your auto-generated captions."/>;
@@ -479,4 +520,4 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect, onAdd
   }
 }
 
-Object.assign(window, { VideoSurface, PlanDoc, ReviewSurface, PublishSurface, ScriptSurface, Placeholder, SurfaceContent });
+Object.assign(window, { VideoSurface, PlanDoc, ReviewSurface, PublishSurface, MediaSurface, ScriptSurface, Placeholder, SurfaceContent });
