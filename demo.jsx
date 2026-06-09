@@ -126,6 +126,43 @@ const DEMO = {
     ],
   },
 
+  // Timeline model (seconds). Scenes from the chapters; pins are overlays
+  // (lower-thirds = vector, b-roll = media, music = audio — the draggable hero);
+  // script = the dialogue waveform + a representative wordbar.
+  timeline: {
+    durationSec: 1250,
+    scenes: [
+      { name: "Big is Your Engine",    startSec: 0,   durSec: 183 },
+      { name: "Boutique is Your Edge", startSec: 183, durSec: 328 },
+      { name: "Listing Resources",     startSec: 511, durSec: 258 },
+      { name: "Open House Script",     startSec: 769, durSec: 481 },
+    ],
+    pins: [
+      { id: "lt1",   kind: "vector", title: "LT: Neda Navab",       startSec: 8,   durSec: 44 },
+      { id: "lt2",   kind: "vector", title: "LT: Ashley Donat",     startSec: 188, durSec: 34 },
+      { id: "broll", kind: "media",  title: "B-roll — listing walk", startSec: 540, durSec: 150 },
+      { id: "music", kind: "audio",  title: "Ambient bed — Loop 2",  startSec: 0,   durSec: 1000 },
+    ],
+    script: {
+      segments: [
+        { speaker: "Neda Navab",   startSec: 0,   durSec: 183 },
+        { speaker: "Ashley Donat", startSec: 183, durSec: 32  },
+        { speaker: "Neda Navab",   startSec: 215, durSec: 1035 },
+      ],
+      words: [
+        { t: "What I say is",        startSec: 2,   durSec: 12 },
+        { t: "Big is your engine",   startSec: 16,  durSec: 22 },
+        { t: "boutique is your edge", startSec: 40, durSec: 24 },
+        { t: "Compass One",          startSec: 80,  durSec: 26 },
+        { t: "first-time buyer",     startSec: 120, durSec: 28 },
+        { t: "the power of Big",     startSec: 170, durSec: 22 },
+        { t: "the technology",       startSec: 220, durSec: 24 },
+        { t: "Melissa Mayer",        startSec: 520, durSec: 30 },
+        { t: "town hall gatherings", startSec: 560, durSec: 30 },
+      ],
+    },
+  },
+
   // Beat 2: the "/" skills menu. Only `fn:"fillers"` is wired; the rest are decorative.
   skills: [
     { label: "Remove filler words", fn: "fillers" },
