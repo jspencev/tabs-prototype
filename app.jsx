@@ -291,6 +291,25 @@ function App() {
     }, 1400);
   };
 
+  // Direct (no-plan) script edit — the lighter edit: remove filler words.
+  const runDirectScriptEdit = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    focusScript();
+    setThinking(true);
+    setFillerStriking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setFillerStriking(false);
+      setFillersRemoved(true);
+      setConvo((c) => [...c, { role: "ai", text: "Edited the script — removed 9 filler words (ums, uhs, false starts). It reads much tighter now." }]);
+    }, 1400);
+  };
+  const guidanceNoPlan = (text) => {
+    setConvo((c) => [...c, { role: "user", text },
+      { role: "ai", text: "There’s no plan yet — try “edit the script with a plan” to create one." }]);
+  };
+
   const drawerSend = (text) => {
     const t = text.toLowerCase().trim();
     // Precondition gate: with no media, Underlord can't pretend to do anything —
@@ -304,7 +323,10 @@ function App() {
       if (/^(go|approve|run it|looks good|do it|ship it)/.test(t)) { setConvo((c) => [...c, { role: "user", text }]); onPlanGo(); return; }
       revisePlan(text); return;
     }
-    if (/(rearrange|reorder|restructure|reorganize|move the story|move things around|tighten the story)/.test(t)) { runRearrangePlan(text); return; }
+    // Plan phrase must be tested before the bare script phrase (one contains the other).
+    if (/edit the script with a plan|with a plan|make a plan/.test(t)) { runRearrangePlan(text); return; }
+    if (/edit the script|remove filler|clean up the script|tighten the script/.test(t)) { runDirectScriptEdit(text); return; }
+    if (/edit the plan/.test(t)) { guidanceNoPlan(text); return; }
     if (/chapter/.test(t)) { runChapters(text); return; }
     runSend(text, setConvo, setThinking, timer);
   };

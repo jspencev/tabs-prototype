@@ -189,8 +189,60 @@ function PlanDoc({ updated, onGo, goPulse }) {
   );
 }
 
-function ScriptSurface({ demo, onAddMedia }) {
+// The transcript is a contentEditable plain-text editor, which means the user
+// mutates the DOM directly. To keep React from fighting those manual edits we
+// (1) memoize this subtree so unrelated app re-renders never reconcile it, and
+// (2) remount it via a `key` whenever a scripted edit changes the content (see
+// ScriptSurface). A scripted edit therefore replaces the whole doc cleanly
+// instead of granularly diffing against DOM the user already changed.
+const ScriptDoc = React.memo(function ScriptDoc({ fillersRemoved, fillerStriking, chaptersAdded, rearranged }) {
   const D = window.DEMO || { transcript: [], speakers: {}, projectTitle: "" };
+  let paras = D.transcript;
+  if (rearranged && D.rearrangedOrder) {
+    const byId = {};
+    D.transcript.forEach((p) => { byId[p.id] = p; });
+    paras = D.rearrangedOrder.map((id) => byId[id]).filter(Boolean);
+  }
+  let prev = null;
+  return (
+    <div className="script-doc" contentEditable suppressContentEditableWarning spellCheck={false}>
+      <h1 className="script-title">{D.projectTitle}</h1>
+      {paras.map((p, idx) => {
+        const showSpk = p.speaker !== prev;
+        prev = p.speaker;
+        const showChapter = chaptersAdded && p.chapterStart;
+        return (
+          <React.Fragment key={p.id}>
+            {showChapter && (
+              <div className="chapter">
+                <span className="ch-mark"><Icons.marker/></span>
+                <span className="ch-name">{p.chapterStart}</span>
+                <span className="ch-ts">{p.ts}</span>
+              </div>
+            )}
+            {showSpk && (
+              <div className="spk-label">
+                <span className="nm">{p.speaker}</span>
+                <span className="tc">{p.ts}</span>
+              </div>
+            )}
+            <p className="para-tx">
+              {idx === 0 && <span className="lead-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>}
+              {p.tokens.map((t, i) => {
+                if (typeof t === "string") return <span key={i}>{t}</span>;
+                if (fillersRemoved) return null;
+                if (fillerStriking) return <span key={i} className="fill striking">{t.f}</span>;
+                return <span key={i}>{t.f}</span>;
+              })}
+            </p>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+});
+
+function ScriptSurface({ demo, onAddMedia }) {
   const flags = demo || {};
   if (!flags.videoAdded) {
     return (
@@ -199,49 +251,13 @@ function ScriptSurface({ demo, onAddMedia }) {
       </div>
     );
   }
-  let paras = D.transcript;
-  if (flags.rearranged && D.rearrangedOrder) {
-    const byId = {};
-    D.transcript.forEach((p) => { byId[p.id] = p; });
-    paras = D.rearrangedOrder.map((id) => byId[id]).filter(Boolean);
-  }
-  let prev = null;
+  // Content version: changes only on a scripted edit, forcing a clean remount.
+  const version = [flags.fillersRemoved, flags.fillerStriking, flags.chaptersAdded, flags.rearranged].join("-");
   return (
     <div className="surf-script">
-      <div className="script-doc">
-        <h1 className="script-title">{D.projectTitle}</h1>
-        {paras.map((p, idx) => {
-          const showSpk = p.speaker !== prev;
-          prev = p.speaker;
-          const showChapter = flags.chaptersAdded && p.chapterStart;
-          return (
-            <React.Fragment key={p.id}>
-              {showChapter && (
-                <div className="chapter">
-                  <span className="ch-mark"><Icons.marker/></span>
-                  <span className="ch-name">{p.chapterStart}</span>
-                  <span className="ch-ts">{p.ts}</span>
-                </div>
-              )}
-              {showSpk && (
-                <div className="spk-label">
-                  <span className="nm">{p.speaker}</span>
-                  <span className="tc">{p.ts}</span>
-                </div>
-              )}
-              <p className="para-tx">
-                {idx === 0 && <span className="lead-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>}
-                {p.tokens.map((t, i) => {
-                  if (typeof t === "string") return <span key={i}>{t}</span>;
-                  if (flags.fillersRemoved) return null;
-                  if (flags.fillerStriking) return <span key={i} className="fill striking">{t.f}</span>;
-                  return <span key={i}>{t.f}</span>;
-                })}
-              </p>
-            </React.Fragment>
-          );
-        })}
-      </div>
+      <ScriptDoc key={version}
+                 fillersRemoved={flags.fillersRemoved} fillerStriking={flags.fillerStriking}
+                 chaptersAdded={flags.chaptersAdded} rearranged={flags.rearranged}/>
     </div>
   );
 }
