@@ -159,14 +159,8 @@
 .surf-ph h3 { font:600 15px/1 var(--font-sans); color: var(--fg-2); margin:0; letter-spacing:-.01em; }
 .surf-ph p { font:400 12.5px/1.5 var(--font-sans); margin:0; max-width:240px; text-align:center; }
 
-/* empty transcript placeholder (empty scenario) */
-.surf-script.empty { align-items:center; }
-.script-empty { margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; color: var(--fg-3); text-align:center; }
-.script-empty .se-ic { width:60px; height:60px; border-radius:14px; background: var(--surf-hover);
-  border:1px dashed var(--line-med); display:flex; align-items:center; justify-content:center; }
-.script-empty .se-ic svg { width:26px; height:26px; opacity:.6; }
-.script-empty .se-title { font:600 14px/1 var(--font-sans); color: var(--fg-2); }
-.script-empty .se-sub { font:400 12.5px/1.5 var(--font-sans); max-width:260px; }
+/* empty script tab hosts the shared upload empty state (same as the canvas) */
+.surf-script.empty { align-items:stretch; }
 
 /* Media (project Files) surface */
 .surf-media { height:100%; background: var(--surface-default); color: var(--fg-1); overflow:auto;

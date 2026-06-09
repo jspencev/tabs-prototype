@@ -20,10 +20,50 @@ window.EffectPill = EffectPill;
 // maps an effect key to its "processing" flag on the vid state
 const EFFECT_BUSY = { studioSound: "ssBusy", eyeContact: "ecBusy" };
 
+// Shared empty-state upload target used by both the Video canvas and the Script
+// tab: upload hitbox + Record + drag/drop, then a brief fake ingest before
+// handing off via onAddMedia. Direct manipulation — it never touches Underlord.
+function UploadEmpty({ onAddMedia }) {
+  const [uploading, setUploading] = useState(null); // null | 'upload' | 'record'
+  const [dragOver, setDragOver] = useState(false);
+  const onUpload = (mode) => {
+    if (uploading) return;
+    setUploading(mode);
+    setTimeout(() => { setUploading(null); if (onAddMedia) onAddMedia(mode); }, 1100);
+  };
+  if (uploading) {
+    return (
+      <div className="canvas-empty">
+        <div className="ce-uploading">
+          <span className="ce-spin"></span>
+          <div className="ce-title">{uploading === "record" ? "Recording…" : "Uploading…"}</div>
+          <div className="ce-sub">{(window.DEMO && window.DEMO.fileName) || "recording.mp4"}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={"canvas-empty" + (dragOver ? " drag" : "")}
+         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+         onDragLeave={() => setDragOver(false)}
+         onDrop={(e) => { e.preventDefault(); setDragOver(false); onUpload("upload"); }}>
+      <button className="ce-hitbox" onClick={(e) => { e.stopPropagation(); onUpload("upload"); }}>
+        <span className="ce-icon"><Icons.upload/></span>
+        <span className="ce-title">Upload a file</span>
+        <span className="ce-sub">Click to browse, or drag &amp; drop a video here</span>
+      </button>
+      <div className="ce-or">or</div>
+      <button className="ce-record" onClick={(e) => { e.stopPropagation(); onUpload("record"); }}>
+        <Icons.record/> Record
+      </button>
+      {dragOver && <div className="ce-drop">Drop to add</div>}
+    </div>
+  );
+}
+window.UploadEmpty = UploadEmpty;
+
 function VideoSurface({ demo, onSelect, onAddMedia }) {
   const added = !!(demo && demo.videoAdded);
-  const [uploading, setUploading] = useState(null); // null | 'upload' | 'record' — fake ingest
-  const [dragOver, setDragOver] = useState(false);
   const [sel, setSel] = useState(null); // null | 'video' | 'scene'
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
@@ -38,14 +78,6 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
   const [ssPop, setSsPop] = useState(null); // { rect } when the Studio Sound intensity popover is open
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
-
-  // Empty Video tab: fake ingesting the demo file (upload or record), then hand
-  // off to the app to flip into the post-upload state.
-  const onUpload = (mode) => {
-    if (uploading) return;
-    setUploading(mode);
-    setTimeout(() => { setUploading(null); if (onAddMedia) onAddMedia(mode); }, 1100);
-  };
 
   // Report the current canvas selection up so the contextual toolbar can adapt.
   useEffect(() => { if (onSelect) onSelect(sel); }, [sel]);
@@ -103,30 +135,8 @@ function VideoSurface({ demo, onSelect, onAddMedia }) {
               <span className="h bl"></span><span className="h br"></span>
             </div>}
           </div>
-        ) : uploading ? (
-          <div className="canvas-empty">
-            <div className="ce-uploading">
-              <span className="ce-spin"></span>
-              <div className="ce-title">{uploading === "record" ? "Recording…" : "Uploading…"}</div>
-              <div className="ce-sub">{(window.DEMO && window.DEMO.fileName) || "recording.mp4"}</div>
-            </div>
-          </div>
         ) : (
-          <div className={"canvas-empty" + (dragOver ? " drag" : "")}
-               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-               onDragLeave={() => setDragOver(false)}
-               onDrop={(e) => { e.preventDefault(); setDragOver(false); onUpload("upload"); }}>
-            <button className="ce-hitbox" onClick={(e) => { e.stopPropagation(); onUpload("upload"); }}>
-              <span className="ce-icon"><Icons.upload/></span>
-              <span className="ce-title">Upload a file</span>
-              <span className="ce-sub">Click to browse, or drag &amp; drop a video here</span>
-            </button>
-            <div className="ce-or">or</div>
-            <button className="ce-record" onClick={(e) => { e.stopPropagation(); onUpload("record"); }}>
-              <Icons.record/> Record
-            </button>
-            {dragOver && <div className="ce-drop">Drop to add</div>}
-          </div>
+          <UploadEmpty onAddMedia={onAddMedia}/>
         )}
       </div>
       {sel === "video" && <VideoProperties vid={vid} set={setVideo} apply={applyEffect} onStudioSound={onStudioSound} onClose={() => setSel(null)} side="right"/>}
@@ -179,17 +189,13 @@ function PlanDoc({ updated, onGo, goPulse }) {
   );
 }
 
-function ScriptSurface({ demo }) {
+function ScriptSurface({ demo, onAddMedia }) {
   const D = window.DEMO || { transcript: [], speakers: {}, projectTitle: "" };
   const flags = demo || {};
   if (!flags.videoAdded) {
     return (
       <div className="surf-script empty">
-        <div className="script-empty">
-          <div className="se-ic"><Icons.script/></div>
-          <div className="se-title">No transcript yet</div>
-          <div className="se-sub">Your transcript will appear here once media is added to the project.</div>
-        </div>
+        <UploadEmpty onAddMedia={onAddMedia}/>
       </div>
     );
   }
@@ -510,7 +516,7 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onSelect, onAdd
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
-    case "script": return <ScriptSurface demo={demo}/>;
+    case "script": return <ScriptSurface demo={demo} onAddMedia={onAddMedia}/>;
     case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;
