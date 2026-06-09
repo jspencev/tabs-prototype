@@ -82,6 +82,15 @@
 /* ---- pane content / surfaces ---- */
 .pane-content { min-height:0; overflow:auto; position:relative; }
 
+/* split drop target: right 40% of the tab bar only (dotted line sits at the 60% mark) */
+.split-drop { position:absolute; top:0; right:0; width:40%; height:38px; z-index:8;
+  display:flex; align-items:center; justify-content:center;
+  border-left:2px dotted var(--blurple-500); background: rgba(122,122,220,.08);
+  color: var(--blurple-700); font:600 12px/1 var(--font-sans);
+  transition: background var(--dur-fast); }
+.split-drop.over { background: rgba(122,122,220,.18); }
+.split-drop span { pointer-events:none; }
+
 /* Video / canvas surface */
 .surf-video { height:100%; display:flex; flex-direction:column; }
 .canvas-bar { height:38px; flex:0 0 38px; display:flex; align-items:center; gap:8px; padding:0 12px;

@@ -53,6 +53,9 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
     setMenu(true);
   };
 
+  // A drag can split this pane when it's the only pane and has a tab to keep behind.
+  const canSplit = !isSplit && drag.id != null && pane.tabIds.length > 1;
+
   return (
     <section className="pane">
       <div className={"strip" + (drag.over === "strip-" + pane.id ? " dragover" : "")}
@@ -91,24 +94,21 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
         </div>
       </div>
 
-      <div className={"pane-content" + (splitOver ? " " : "")}
-        onDragOver={(e) => {
-          if (drag.id == null) return;
-          const r = e.currentTarget.getBoundingClientRect();
-          const right = e.clientX > r.left + r.width * 0.6;
-          // only offer split when not already split, and there's another tab to keep
-          if (right && !isSplit) { e.preventDefault(); setSplitOver(true); drag.setOver("split-" + pane.id); }
-          else setSplitOver(false);
-        }}
-        onDragLeave={() => setSplitOver(false)}
-        onDrop={(e) => { if (splitOver) { e.preventDefault(); on.splitDrop(drag.id, pane.id); } setSplitOver(false); drag.set(null, null); }}>
+      <div className="pane-content">
         {activeTab && (
           <SurfaceContent tab={activeTab} planUpdated={on.planUpdated} onGo={on.onGo} goPulse={on.goPulse} demo={demo} onSelect={on.onSelect} onAddMedia={on.onAddMedia}/>
         )}
-        {splitOver && <div className="pane" style={{position:"absolute",inset:"0 0 0 60%",background:"rgba(122,122,220,.12)",borderLeft:"2px solid var(--blurple-500)",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",zIndex:6}}>
-          <span style={{font:"600 12px/1 var(--font-sans)",color:"var(--blurple-700)"}}>Split here</span>
-        </div>}
       </div>
+
+      {/* Split drop target: right 40% of the tab bar (dotted line at 60%), tab-bar height only. */}
+      {canSplit && (
+        <div className={"split-drop" + (splitOver ? " over" : "")}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setSplitOver(true); }}
+          onDragLeave={() => setSplitOver(false)}
+          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); on.splitDrop(drag.id, pane.id); setSplitOver(false); drag.set(null, null); }}>
+          <span>Split right</span>
+        </div>
+      )}
     </section>
   );
 }
