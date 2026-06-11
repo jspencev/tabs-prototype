@@ -126,6 +126,9 @@ function App() {
     if (tab && !tab.closeable) return;
     if (tabId === planId.current) planId.current = null;
     if (tabId === reviewId.current) reviewId.current = null;
+    // Drop the tab record too — open-state checks ([+] menu, openSurface reuse)
+    // read tabsById, and a ghost entry makes closed tabs look open forever.
+    setTabsById((m) => { const next = { ...m }; delete next[tabId]; return next; });
     setPanes((ps) => {
       let next = ps.map((p) => {
         if (!p.tabIds.includes(tabId)) return p;
