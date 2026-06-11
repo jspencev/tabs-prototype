@@ -163,6 +163,38 @@ const DEMO = {
     },
   },
 
+  // Stock library (canned Storyblocks-style results for the Media browser).
+  stock: {
+    videos: [
+      { t: "City skyline timelapse",  d: "0:14" },
+      { t: "Suburban street aerial",  d: "0:22" },
+      { t: "Handshake close-up",      d: "0:09" },
+      { t: "Modern kitchen pan",      d: "0:12" },
+      { t: "Open house welcome",      d: "0:18" },
+      { t: "Keys on the table",       d: "0:07" },
+    ],
+    images: [
+      { t: "Craftsman exterior" },
+      { t: "Living room staging" },
+      { t: "Neighborhood park" },
+      { t: "Coffee meeting" },
+      { t: "For-sale sign" },
+      { t: "Front porch detail" },
+    ],
+    music: [
+      { t: "Ambient bed — Loop 2", d: "2:40" },
+      { t: "Upbeat acoustic",      d: "3:05" },
+      { t: "Soft piano focus",     d: "2:12" },
+      { t: "Indie pop sting",      d: "0:32" },
+    ],
+    sfx: [
+      { t: "Door open",        d: "0:02" },
+      { t: "Camera shutter",   d: "0:01" },
+      { t: "Notification pop", d: "0:01" },
+      { t: "Crowd ambience",   d: "0:45" },
+    ],
+  },
+
   // Compositions: the main video plus the clips "Create clips" produces. Clips
   // open as their own tabs (the tabbed answer to Descript's composition switcher).
   compositions: {

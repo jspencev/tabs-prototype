@@ -107,6 +107,7 @@ function App() {
   const [scriptSel, setScriptSel] = useState(false);
   const scriptRange = useRef(null);
   const scriptTimer = useRef(null);
+  const [mediaSeg, setMediaSeg] = useState("project"); // Media browser segment
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded };
 
   // ===== tab operations =====
@@ -336,6 +337,19 @@ function App() {
       { role: "ai", text: "There’s no plan yet — try “edit the script with a plan” to create one." }]);
   };
 
+  // "Find me a…" → point at the stock library and open it (Notion Task 5).
+  const runStockGuide = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setMediaSeg("stock");
+      openSurface(panes[panes.length - 1].id, "media");
+      setConvo((c) => [...c, { role: "ai", text: "Descript has a built-in stock library — I opened it in the Media tab. Search there and drag anything onto the canvas." }]);
+    }, 1200);
+  };
+
   // ===== Script tab AI actions (header pills — direct manipulation, no chat) =====
   const runScriptTool = (kind) => {
     if (scriptBusy) return;
@@ -406,6 +420,7 @@ function App() {
     if (/edit the script|remove filler|clean up the script|tighten the script/.test(t)) { runDirectScriptEdit(text); return; }
     if (/edit the plan/.test(t)) { guidanceNoPlan(text); return; }
     if (/chapter/.test(t)) { runChapters(text); return; }
+    if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
     runSend(text, setConvo, setThinking, timer);
   };
   const drawerChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setConvo); else drawerSend(text); };
@@ -423,6 +438,7 @@ function App() {
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
     setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
+    setMediaSeg("project");
     setTlOpen(false);
     setView("editor");
   };
@@ -638,6 +654,7 @@ function App() {
     sel: selection, setSel: setSelection,
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
+    mediaSeg, setMediaSeg,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 

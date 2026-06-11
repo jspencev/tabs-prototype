@@ -575,23 +575,116 @@ function PublishSurface() {
   );
 }
 
-// ── Media (project Files) ────────────────────────────────────────────────────
-// Mirrors Descript's project "Files" panel: empty -> "Drag & drop or click to
-// add files" + "Add files"; filled -> the demo file as a row. Upload is the same
-// immediate fake ingest as the canvas (direct manipulation, no Underlord chatter).
-function MediaSurface({ demo, onAddMedia }) {
+// ── Media browser (Project / Stock / Generate) ──────────────────────────────
+// One tab covering Descript's Project files pane and the Media pane (My media /
+// Stock, Storyblocks-style sections), plus a Conductor-style Generate entry.
+// Only Project upload (fake ingest) functions; Stock/Generate are believable
+// canned surfaces scoped to the research tasks.
+const STOCK_GRADS = [
+  "linear-gradient(135deg,#5a6bbf,#8b5a9e)", "linear-gradient(135deg,#2f7d72,#7fb069)",
+  "linear-gradient(135deg,#b84676,#e0a458)", "linear-gradient(135deg,#41658a,#70a9a1)",
+  "linear-gradient(135deg,#8b3a5a,#d58c6a)", "linear-gradient(135deg,#6f58bd,#a3a3ee)",
+];
+
+function StockSection({ title, items, query, audio }) {
+  const q = query.trim().toLowerCase();
+  const hits = q ? items.filter((it) => it.t.toLowerCase().includes(q)) : items;
+  if (hits.length === 0) return null;
+  return (
+    <div className="stk-section">
+      <div className="stk-head">
+        <span className="stk-title">{title}</span>
+        <span className="sp"></span>
+        <button className="stk-all">Show all</button>
+      </div>
+      {audio ? (
+        <div className="stk-rows">
+          {hits.map((it, i) => (
+            <div className="stk-audio" key={it.t}>
+              <button className="sa-play"><Icons.play/></button>
+              <span className="sa-nm">{it.t}</span>
+              <span className="sa-dur">{it.d}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="stk-grid">
+          {hits.map((it, i) => (
+            <div className="stk-tile" key={it.t} draggable title={it.t}>
+              <span className="st-thumb" style={{ background: STOCK_GRADS[i % STOCK_GRADS.length] }}>
+                {it.d && <span className="st-dur">{it.d}</span>}
+              </span>
+              <span className="st-nm">{it.t}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MEDIA_SEGS = [["project", "Project"], ["stock", "Stock"], ["generate", "Generate"]];
+const GEN_TYPES = ["Image", "Video", "Music", "Sound effect"];
+
+function MediaSurface({ demo, onAddMedia, seg = "project", setSeg }) {
   const added = !!(demo && demo.videoAdded);
   const D = window.DEMO || {};
+  const S = D.stock || { videos: [], images: [], music: [], sfx: [] };
   const [dragOver, setDragOver] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addPos, setAddPos] = useState({ top: 0, left: 0 });
+  const [q, setQ] = useState("");
+  const [av, setAv] = useState("visuals"); // visuals | audio
+  const [genType, setGenType] = useState("Image");
+  const [genPrompt, setGenPrompt] = useState("");
+  const [genBusy, setGenBusy] = useState(false);
+  const [genDone, setGenDone] = useState(false);
+  const addRef = React.useRef(null);
+
   const add = () => { if (onAddMedia) onAddMedia(); };
+  const toggleAdd = () => {
+    if (addOpen) { setAddOpen(false); return; }
+    const r = addRef.current && addRef.current.getBoundingClientRect();
+    if (r) setAddPos({ top: r.bottom + 6, left: r.left });
+    setAddOpen(true);
+  };
+  const generate = () => {
+    if (genBusy) return;
+    setGenBusy(true); setGenDone(false);
+    setTimeout(() => { setGenBusy(false); setGenDone(true); }, 1800);
+  };
+
   return (
     <div className="surf-media">
       <div className="md-bar">
-        <span className="md-title">Files</span>
+        <span className="md-title">Media</span>
+        <div className="md-segs">
+          {MEDIA_SEGS.map(([id, label]) => (
+            <button key={id} className={"md-seg" + (seg === id ? " on" : "")}
+                    onClick={() => setSeg && setSeg(id)}>{label}</button>
+          ))}
+        </div>
         <span className="sp"></span>
-        <button className="md-add" onClick={add}><Icons.plus/> Add files</button>
+        {seg === "project" && (
+          <button ref={addRef} className={"md-add" + (addOpen ? " on" : "")} onClick={toggleAdd}>
+            <Icons.plus/> Add files <Icons.chevD/>
+          </button>
+        )}
       </div>
-      {added ? (
+
+      {addOpen && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setAddOpen(false)}></div>
+          <div className="menu" style={{ position:"fixed", top: addPos.top, left: addPos.left }}>
+            <div className="mlabel">Add from</div>
+            <div className="mi" onClick={() => { setAddOpen(false); add(); }}><Icons.upload/> Computer</div>
+            <div className="mi" onClick={() => setAddOpen(false)}><Icons.folder/> Other projects</div>
+            <div className="mi" onClick={() => setAddOpen(false)}><Icons.youtube/> Import from YouTube</div>
+          </div>
+        </>
+      )}
+
+      {seg === "project" && (added ? (
         <div className="md-list">
           <div className="md-item">
             <span className="md-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>
@@ -611,6 +704,62 @@ function MediaSurface({ demo, onAddMedia }) {
             <span className="md-dt">Drag &amp; drop or click to add files</span>
           </button>
         </div>
+      ))}
+
+      {seg === "stock" && (
+        <div className="md-stock">
+          <div className="stk-bar">
+            <div className="stk-search">
+              <Icons.stock/>
+              <input placeholder={av === "audio" ? "Search music and sound effects" : "Search stock videos and images"}
+                     value={q} onChange={(e) => setQ(e.target.value)}/>
+            </div>
+            <div className="stk-toggle">
+              <button className={av === "visuals" ? "on" : ""} title="Visuals" onClick={() => setAv("visuals")}><Icons.image/></button>
+              <button className={av === "audio" ? "on" : ""} title="Audio" onClick={() => setAv("audio")}><Icons.audio/></button>
+            </div>
+          </div>
+          <div className="stk-body">
+            {av === "visuals" ? (
+              <>
+                <StockSection title="Videos" items={S.videos} query={q}/>
+                <StockSection title="Images" items={S.images} query={q}/>
+              </>
+            ) : (
+              <>
+                <StockSection title="Music" items={S.music} query={q} audio/>
+                <StockSection title="Sound effects" items={S.sfx} query={q} audio/>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {seg === "generate" && (
+        <div className="md-gen">
+          <div className="gen-types">
+            {GEN_TYPES.map((g) => (
+              <button key={g} className={"gen-chip" + (genType === g ? " on" : "")}
+                      onClick={() => { setGenType(g); setGenDone(false); }}>{g}</button>
+            ))}
+          </div>
+          <textarea className="gen-prompt" rows="3" value={genPrompt}
+                    placeholder={`Describe the ${genType.toLowerCase()} you want to generate…`}
+                    onChange={(e) => setGenPrompt(e.target.value)}/>
+          <button className="gen-go" disabled={genBusy || !genPrompt.trim()} onClick={generate}>
+            {genBusy ? <span className="pspin"></span> : <Icons.sparkle/>}
+            {genBusy ? "Generating…" : "Generate"}
+          </button>
+          {genDone && (
+            <div className="gen-result">
+              <span className="gr-thumb" style={{ background: STOCK_GRADS[2] }}><Icons.sparkle/></span>
+              <span className="gr-meta">
+                <span className="gr-nm">Generated {genType.toLowerCase()}</span>
+                <span className="gr-sub">Added to Project files</span>
+              </span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -628,14 +777,14 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg }) {
   switch (tab.kind) {
     case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={onAddMedia}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
     case "script": return <ScriptSurface demo={demo} onAddMedia={onAddMedia} onScriptTool={onScriptTool} scriptBusy={scriptBusy} compName={tab.compName}/>;
-    case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia}/>;
+    case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia} seg={mediaSeg} setSeg={setMediaSeg}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;
     case "captions":return <Placeholder icon="captions" title="Captions" body="Style, position and time your auto-generated captions."/>;
