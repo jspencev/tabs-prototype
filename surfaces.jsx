@@ -59,10 +59,41 @@ function UploadEmpty({ onAddMedia }) {
 }
 window.UploadEmpty = UploadEmpty;
 
+// Floating text toolbar — a slim clone of Descript's TextPropertyToolbar,
+// anchored above the selected text layer (font, size, color, alignment).
+function CanvasTextToolbar({ st, set, pos, centered }) {
+  const FONTS = window.TEXT_FONTS || ["Booton"];
+  return (
+    <div className="txt-toolbar"
+         style={{ left: Math.min(72, Math.max(4, pos.x)) + "%", top: Math.max(2, pos.y - 11) + "%",
+                  transform: centered ? "translate(-50%,-100%)" : "translateY(-100%)" }}
+         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+      <select className="tt-font" value={st.fontFamily} onChange={(e) => set("fontFamily", e.target.value)}>
+        {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+      </select>
+      <div className="tt-step">
+        <button onClick={() => set("fontSize", Math.max(8, st.fontSize - 2))}>−</button>
+        <span>{st.fontSize}</span>
+        <button onClick={() => set("fontSize", Math.min(220, st.fontSize + 2))}>+</button>
+      </div>
+      <label className="tt-color" title="Text color">
+        <span className="swatch" style={{ background: st.color }}></span>
+        <input type="color" value={st.color} onChange={(e) => set("color", e.target.value)}/>
+      </label>
+      <span className="tt-div"></span>
+      {[["left", "alignL"], ["center", "alignC"], ["right", "alignR"]].map(([v, ic]) => {
+        const I = Icons[ic];
+        return <button key={v} className={"tt-btn" + (st.textAlign === v ? " on" : "")}
+                       title={"Align " + v} onClick={() => set("textAlign", v)}><I/></button>;
+      })}
+    </div>
+  );
+}
+
 // VideoSurface is controlled: selection (sel/setSel) and effects (fx) are owned
 // by App so the bottom command bar and the property panels share one source of
 // truth. Pure attributes (scale, rotation, etc.) stay local for the panels.
-function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, onAddMedia }) {
+function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onAddMedia }) {
   const added = !!(demo && demo.videoAdded);
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
@@ -75,11 +106,38 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
   const [txt, setTxt] = useState({
     text: "Neda Navab", fontFamily: "Booton", fontSize: 30, weight: 600, italic: false,
     textAlign: "left", verticalAlign: "bottom", lineHeight: 1.1, letterSpacing: 0,
-    color: "#FFF8F4", box: "auto-width", opacity: 100,
+    color: "#FFF8F4", box: "auto-width", opacity: 100, x: 5, y: 72,
+  });
+  const [txt2, setTxt2] = useState({
+    text: "Add text", fontFamily: "Booton", fontSize: 44, weight: 600, italic: false,
+    textAlign: "center", verticalAlign: "middle", lineHeight: 1.15, letterSpacing: 0,
+    color: "#FFF8F4", box: "auto-width", opacity: 100, x: 50, y: 40,
   });
   const setScene = (k, v) => setSc((s) => ({ ...s, [k]: v }));
   const setVideo = (k, v) => setVid((s) => ({ ...s, [k]: v }));
   const setText = (k, v) => setTxt((s) => ({ ...s, [k]: v }));
+  const setText2 = (k, v) => setTxt2((s) => ({ ...s, [k]: v }));
+  const stageRef = React.useRef(null);
+
+  // Select on mousedown, drag to reposition (% of the stage).
+  const layerDown = (e, layerId, st, set) => {
+    e.stopPropagation();
+    setSel(layerId);
+    const stage = stageRef.current;
+    if (!stage) return;
+    const r = stage.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY;
+    const ox = st.x, oy = st.y;
+    const move = (ev) => {
+      const dx = ((ev.clientX - startX) / r.width) * 100;
+      const dy = ((ev.clientY - startY) / r.height) * 100;
+      set("x", Math.max(0, Math.min(95, ox + dx)));
+      set("y", Math.max(0, Math.min(94, oy + dy)));
+    };
+    const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
 
   // Clear the app-level selection when the canvas surface unmounts.
   useEffect(() => () => { if (setSel) setSel(null); }, []);
@@ -111,7 +169,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
       </div>
       <div className="stage-wrap" onClick={() => setSel(null)}>
         {added ? (
-          <div className="stage stage-video" style={{ borderRadius: vid.radius }}>
+          <div className="stage stage-video" ref={stageRef} style={{ borderRadius: vid.radius }}>
             <img src="video-thumb.png" alt="Video"
                  style={{ opacity: vid.opacity / 100, transform: `scale(${vid.scale / 100})` }}
                  onClick={(e) => { e.stopPropagation(); setSel("video"); }}/>
@@ -124,14 +182,30 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
             )}
             {textLayerVisible && (
               <div className={"lower-third" + (sel === "text" ? " sel" : "")}
-                   onClick={(e) => { e.stopPropagation(); setSel("text"); }}>
+                   style={{ left: txt.x + "%", top: txt.y + "%" }}
+                   onMouseDown={(e) => layerDown(e, "text", txt, setText)}
+                   onClick={(e) => e.stopPropagation()}>
                 <div className="lt-name" style={{ fontFamily: (FONT_STACK[txt.fontFamily] || "inherit"),
-                     fontSize: txt.fontSize, fontWeight: txt.weight, color: txt.color,
+                     fontSize: txt.fontSize, fontWeight: txt.weight, color: txt.color, textAlign: txt.textAlign,
                      fontStyle: txt.italic ? "italic" : "normal", opacity: txt.opacity / 100 }}>{txt.text}</div>
                 <div className="lt-role">Compass · Real Estate</div>
                 {sel === "text" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
               </div>
             )}
+            {freeTextVisible && (
+              <div className={"free-text" + (sel === "text2" ? " sel" : "")}
+                   style={{ left: txt2.x + "%", top: txt2.y + "%",
+                            fontFamily: (FONT_STACK[txt2.fontFamily] || "inherit"), fontSize: txt2.fontSize,
+                            fontWeight: txt2.weight, color: txt2.color, textAlign: txt2.textAlign,
+                            fontStyle: txt2.italic ? "italic" : "normal", opacity: txt2.opacity / 100 }}
+                   onMouseDown={(e) => layerDown(e, "text2", txt2, setText2)}
+                   onClick={(e) => e.stopPropagation()}>
+                {txt2.text}
+                {sel === "text2" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
+              </div>
+            )}
+            {sel === "text"  && <CanvasTextToolbar st={txt} set={setText} pos={{ x: txt.x, y: txt.y }}/>}
+            {sel === "text2" && <CanvasTextToolbar st={txt2} set={setText2} pos={{ x: txt2.x, y: txt2.y }} centered/>}
             {sel === "video" && <div className="vid-frame" style={{ borderRadius: vid.radius }}>
               <span className="tag">Video</span>
               <span className="h tl"></span><span className="h tr"></span>
@@ -145,6 +219,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
       {sel === "video" && <VideoProperties vid={vid} set={setVideo} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} onClose={() => setSel(null)} side="right"/>}
       {sel === "scene" && <SceneProperties sc={sc} set={setScene} onClose={() => setSel(null)}/>}
       {sel === "text"  && <TextProperties st={txt} set={setText} onClose={() => setSel(null)} side="right"/>}
+      {sel === "text2" && <TextProperties st={txt2} set={setText2} onClose={() => setSel(null)} side="right"/>}
     </div>
   );
 }
@@ -553,9 +628,9 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, onScriptTool, scriptBusy }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} onAddMedia={onAddMedia}/>;
+    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={onAddMedia}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;

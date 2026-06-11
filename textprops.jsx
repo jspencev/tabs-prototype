@@ -363,4 +363,4 @@ const FONT_STACK = {
   "Brett": '"Brett", Georgia, serif',
 };
 
-Object.assign(window, { TextProperties, ImageProperties, SceneProperties, VideoProperties, FONT_STACK });
+Object.assign(window, { TextProperties, ImageProperties, SceneProperties, VideoProperties, FONT_STACK, TEXT_FONTS, TEXT_COLORS });

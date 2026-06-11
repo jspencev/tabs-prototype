@@ -100,6 +100,7 @@ function App() {
   // The speaker lower-third starts hidden everywhere: Task 6 is the participant
   // *adding* it (Speaker layout / Add element → Text).
   const [textLayerVisible, setTextLayerVisible] = useState(false);
+  const [freeTextVisible, setFreeTextVisible] = useState(false); // "Add element → Text" layer
   const fxTimers = useRef({});
   // Script tab AI actions (header pills) + text selection inside the transcript.
   const [scriptBusy, setScriptBusy] = useState(null); // null | 'fillers' | 'clarity'
@@ -421,7 +422,7 @@ function App() {
     setRearranged(b.flags.rearranged); setScenesAdded(b.flags.scenesAdded); setClipsAdded(b.flags.clipsAdded);
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
-    setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false);
+    setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
     setTlOpen(false);
     setView("editor");
   };
@@ -457,7 +458,19 @@ function App() {
     if (!fx.studioSound && !fx.ssBusy) toggleEffect("studioSound");
   };
   const removeStudioSound = () => { if (fx.studioSound) toggleEffect("studioSound"); setSsPop(null); };
-  const deleteTextLayer = () => { setTextLayerVisible(false); setSelection(null); };
+  const deleteTextLayer = () => {
+    if (selection === "text2") setFreeTextVisible(false);
+    else setTextLayerVisible(false);
+    setSelection(null);
+  };
+
+  // Command-bar representative menus: the few items that must visibly work
+  // (Notion Task 6) act; the rest just close the menu.
+  const onRepAction = (kind, item) => {
+    if (kind === "layout" && item === "Speaker") { setTextLayerVisible(true); setSelection("text"); return; }
+    if (kind === "add" && (item === "Speaker name" || item === "Subtitle")) { setTextLayerVisible(true); setSelection("text"); return; }
+    if (kind === "add" && (item === "Text" || item === "Title")) { setFreeTextVisible(true); setSelection("text2"); return; }
+  };
 
   // ===== empty Video tab: direct upload/record just adds media =====
   // Direct manipulation, NOT a chat action — it must not touch Underlord. Only
@@ -623,7 +636,7 @@ function App() {
     planUpdated, onGo: onPlanGo, goPulse,
     onAddMedia: addMedia,
     sel: selection, setSel: setSelection,
-    fx, onEffect: toggleEffect, onStudioSound, textLayerVisible,
+    fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
@@ -636,7 +649,8 @@ function App() {
   const canvasVisible = panes.some((p) => { const tb = tabsById[p.activeId]; return tb && tb.kind === "video"; });
   // A live transcript text selection takes the bar over; otherwise the canvas drives it.
   const cmdContext = scriptSel ? "script"
-    : (!videoAdded || !canvasVisible) ? "none" : (selection || "scene");
+    : (!videoAdded || !canvasVisible) ? "none"
+    : (selection === "text2" ? "text" : (selection || "scene"));
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -685,7 +699,7 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density="comfortable" on={on} demo={demo}/>
-            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
+            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
           <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} onClose={() => setTlOpen(false)}/>
@@ -823,18 +837,18 @@ function CmdEffectsMenu({ fx, onEffect, onStudioSound, onClose, left, bottom }) 
   );
 }
 
-function CmdRepMenu({ kind, left, bottom }) {
+function CmdRepMenu({ kind, left, bottom, onItem }) {
   const m = REP_MENUS[kind];
   if (!m) return null;
   return (
     <div className="menu cmd-menu" style={{ position:"fixed", left, bottom }} onClick={(e) => e.stopPropagation()}>
       <div className="mlabel">{m.label}</div>
-      {m.items.map((it) => <div className="mi" key={it}>{it}</div>)}
+      {m.items.map((it) => <div className="mi" key={it} onClick={() => onItem && onItem(it)}>{it}</div>)}
     </div>
   );
 }
 
-function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgnore, onDeleteSel, onUnderlord, dockCenterX, dockBottom }) {
+function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgnore, onDeleteSel, onRep, onUnderlord, dockCenterX, dockBottom }) {
   const [menu, setMenu] = useState(null); // { kind, left, bottom }
   const set = CMD_SETS[context] || CMD_SETS.none;
   // Selection changes can strand an open menu — close it when context changes.
@@ -863,7 +877,8 @@ function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgno
         <CmdEffectsMenu fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} onClose={() => setMenu(null)} left={menu.left} bottom={menu.bottom}/>
       )}
       {menu && menu.kind !== "effects" && (
-        <CmdRepMenu kind={menu.kind} left={menu.left} bottom={menu.bottom}/>
+        <CmdRepMenu kind={menu.kind} left={menu.left} bottom={menu.bottom}
+                    onItem={(it) => { if (onRep) onRep(menu.kind, it); setMenu(null); }}/>
       )}
     </>
   );
