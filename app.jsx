@@ -542,6 +542,17 @@ function App() {
   const openClip = (clip) => {
     openSurface(panes[panes.length - 1].id, "video", true, clip.id, { compName: clip.name });
   };
+  // A new composition opens as its own blank Canvas tab (Descript names them "Untitled").
+  const newComposition = (paneId) => {
+    const n = Object.values(tabsById).filter((tb) => tb.compName && tb.compName.startsWith("Untitled")).length;
+    const name = n === 0 ? "Untitled" : "Untitled " + (n + 1);
+    const nt = makeTab("video", { comp: uid("comp"), compName: name, blank: true });
+    setTabsById((m) => ({ ...m, [nt.id]: nt }));
+    setPanes((ps) => ps.map((p) => p.id === paneId
+      ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p));
+  };
+  const fillBlankComp = (tabId) =>
+    setTabsById((m) => (m[tabId] ? { ...m, [tabId]: { ...m[tabId], blank: false } } : m));
   const runCreateClips = (text) => {
     setConvo((c) => [...c, { role: "user", text: text || "Create clips" }]);
     setThinking(true);
@@ -700,6 +711,7 @@ function App() {
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
     mediaSeg, setMediaSeg, openClip,
+    newComposition, onFillBlank: fillBlankComp,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
@@ -766,7 +778,9 @@ function App() {
                 ))}
               </>
             )}
-            <button className="cp-new"><Icons.plus/> New composition</button>
+            <button className="cp-new" onClick={() => { newComposition(panes[panes.length - 1].id); setCompsOpen(false); }}>
+              <Icons.plus/> New composition
+            </button>
           </div>
         </>
       )}

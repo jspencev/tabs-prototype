@@ -778,9 +778,11 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg, onFillBlank }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={onAddMedia} compName={tab.compName}/>;
+    // A blank composition tab renders the empty canvas; its upload only fills
+    // this tab (clears `blank`), it doesn't touch global project state.
+    case "video":  return <VideoSurface demo={tab.blank ? { ...demo, videoAdded: false } : demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={tab.blank ? () => onFillBlank(tab.id) : onAddMedia} compName={tab.compName}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
