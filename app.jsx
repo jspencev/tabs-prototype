@@ -235,26 +235,16 @@ function App() {
     return nt.id;
   };
 
-  // Generic simulated Underlord send — operates on whichever chat's list/busy
-  // setters are passed in, so the drawer and the mist stay independent.
-  const runSend = (text, setList, setBusy, timerRef) => {
+  // Graceful generic acknowledgement — any unrecognized participant message
+  // ends the research task here without spawning fake artifacts.
+  const runGenericAck = (text, setList, setBusy, timerRef) => {
     setList((c) => [...c, { role: "user", text }]);
     setBusy(true);
     clearTimeout(timerRef.current);
-    const hasPlan = !!(planId.current && tabsById[planId.current]);
     timerRef.current = setTimeout(() => {
       setBusy(false);
-      if (!hasPlan) {
-        setList((c) => [...c,
-          { role: "ai", text: "Great — here's a plan to do all that. I've opened it as its own tab so you can review it before we run anything." },
-          { role: "ai", artifact: { id: "plan", name: "Plan — launch video cut", sub: "Markdown · opens as a tab" } },
-          { role: "ai", text: "Want to change anything before I run it?", chips: ["Make it punchier", "Add captions", "Looks good — Go"] },
-        ]);
-        ensurePlanTab();
-      } else {
-        setList((c) => [...c, { role: "ai", text: "hello how are you doing" }]);
-      }
-    }, 1700);
+      setList((c) => [...c, { role: "ai", text: "Got it — I'll take a pass at that and check back in when it's ready for review." }]);
+    }, 1400);
   };
 
   const runGo = (setList) => {
@@ -428,7 +418,7 @@ function App() {
     if (/what clips|which clips|where.+clips|clips.+(exist|project)|find (the |my )?clips|show.+clips/.test(t)) { runListClips(text); return; }
     if (/create clips|make (some )?clips|social clips|clip the|cut.+clips/.test(t)) { runCreateClips(text); return; }
     if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
-    runSend(text, setConvo, setThinking, timer);
+    runGenericAck(text, setConvo, setThinking, timer);
   };
   const drawerChip = (text) => { if (/^(go|looks good)/i.test(text)) runGo(setConvo); else drawerSend(text); };
 
@@ -634,7 +624,7 @@ function App() {
     clearTimeout(mistTimer.current);
     mistTimer.current = setTimeout(() => {
       setMistThinking(false);
-      setMistConvo((c) => [...c, { role: "ai", text: "Hello, how are you doing?" }]);
+      setMistConvo((c) => [...c, { role: "ai", text: "Got it — I'll take a pass at that and check back in when it's ready for review." }]);
     }, 900);
   };
   const mistChip = (text) => mistSend(text);
@@ -709,7 +699,7 @@ function App() {
     sel: selection, setSel: setSelection,
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
-    mediaSeg, setMediaSeg,
+    mediaSeg, setMediaSeg, openClip,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 

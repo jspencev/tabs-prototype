@@ -51,6 +51,7 @@
 .tab .ti { width:15px; height:15px; flex:0 0 15px; display:flex; align-items:center; justify-content:center; opacity:.85; }
 .tab .ti svg { width:15px; height:15px; }
 .tab .lbl { overflow:hidden; text-overflow:ellipsis; }
+.menu .mi .clip-label { max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tab .comp { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font:500 10px/1 var(--font-sans); color: var(--fg-3); background: var(--surf-hover);
   border-radius:999px; padding:3px 7px; flex:0 1 auto; }

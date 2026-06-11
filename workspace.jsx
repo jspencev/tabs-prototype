@@ -14,7 +14,7 @@ const SURFACE_DEFS = {
 };
 window.SURFACE_DEFS = SURFACE_DEFS;
 
-const ADD_MENU = ["video", "script", "settings", "media"];
+const ADD_MENU = ["video", "script", "media", "publish", "settings"];
 
 function Tab({ tab, active, paneId, density, drag, on }) {
   const I = Icons[tab.icon] || Icons.doc;
@@ -85,6 +85,21 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
                       </div>
                     );
                   })}
+                  {demo && demo.clipsAdded && (
+                    <>
+                      <div className="mlabel">Clips</div>
+                      {(((window.DEMO || {}).compositions || {}).clips || []).map((c) => {
+                        const isOpen = Object.values(tabsById).some((tb) => (tb.comp || "main") === c.id);
+                        return (
+                          <div className={"mi" + (isOpen ? " disabled" : "")} key={c.id}
+                               onClick={isOpen ? undefined : () => { on.openClip(c); setMenu(false); }}>
+                            <Icons.video/> <span className="clip-label">{c.name}</span>
+                            {isOpen && <span className="k">Open</span>}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               </>
             )}
