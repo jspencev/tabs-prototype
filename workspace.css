@@ -175,7 +175,7 @@
 .surf-ph p { font:400 12.5px/1.5 var(--font-sans); margin:0; max-width:240px; text-align:center; }
 
 /* empty script tab hosts the shared upload empty state (same as the canvas) */
-.surf-script.empty { align-items:stretch; }
+.surf-script.empty .canvas-empty { flex:1; }
 
 /* Media (project Files) surface */
 .surf-media { height:100%; background: var(--surface-default); color: var(--fg-1); overflow:auto;
@@ -266,10 +266,14 @@
 .pub-secondary svg { width:14px; height:14px; }
 
 /* Script surface — mirrors Descript's CompositionScriptRenderer (16px/32px, ~668px column) */
-.surf-script { height:100%; background: var(--surface-default); overflow:auto; display:flex; justify-content:center;
+.surf-script { height:100%; background: var(--surface-default); overflow:hidden; display:flex; flex-direction:column;
   font:400 16px/32px var(--font-sans);
   color: var(--fg-1); }
+.surf-script .script-bar .cpill.btn.ai { cursor:pointer; }
+.surf-script .script-bar .cpill.btn[disabled] { opacity:.7; cursor:default; }
+.surf-script .script-scroll { flex:1; min-height:0; overflow:auto; display:flex; justify-content:center; }
 .surf-script .script-doc { width:100%; max-width:668px; padding:40px; box-sizing:content-box; }
+.surf-script .ignored { color: var(--fg-3); text-decoration: line-through; text-decoration-color: var(--fg-3); }
 /* plain text editor: caret + no focus ring, selection reads like Descript */
 .surf-script .script-doc[contenteditable] { outline:none; caret-color: var(--blurple-600); cursor:text; }
 .surf-script .script-doc[contenteditable] ::selection { background: rgba(122,122,220,.22); }

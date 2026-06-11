@@ -101,6 +101,11 @@ function App() {
   // *adding* it (Speaker layout / Add element → Text).
   const [textLayerVisible, setTextLayerVisible] = useState(false);
   const fxTimers = useRef({});
+  // Script tab AI actions (header pills) + text selection inside the transcript.
+  const [scriptBusy, setScriptBusy] = useState(null); // null | 'fillers' | 'clarity'
+  const [scriptSel, setScriptSel] = useState(false);
+  const scriptRange = useRef(null);
+  const scriptTimer = useRef(null);
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded };
 
   // ===== tab operations =====
@@ -328,6 +333,58 @@ function App() {
   const guidanceNoPlan = (text) => {
     setConvo((c) => [...c, { role: "user", text },
       { role: "ai", text: "There’s no plan yet — try “edit the script with a plan” to create one." }]);
+  };
+
+  // ===== Script tab AI actions (header pills — direct manipulation, no chat) =====
+  const runScriptTool = (kind) => {
+    if (scriptBusy) return;
+    setScriptBusy(kind);
+    setFillerStriking(true);
+    clearTimeout(scriptTimer.current);
+    scriptTimer.current = setTimeout(() => {
+      setFillerStriking(false);
+      setFillersRemoved(true);
+      setScriptBusy(null);
+    }, 1400);
+  };
+
+  // ===== Script text selection → command bar 'script' context =====
+  useEffect(() => {
+    const h = () => {
+      const s = document.getSelection();
+      const node = s && !s.isCollapsed && s.anchorNode;
+      const el = node && (node.nodeType === 1 ? node : node.parentElement);
+      if (el && el.closest && el.closest(".script-doc")) {
+        scriptRange.current = s.getRangeAt(0);
+        setScriptSel(true);
+      } else {
+        setScriptSel(false);
+      }
+    };
+    document.addEventListener("selectionchange", h);
+    return () => document.removeEventListener("selectionchange", h);
+  }, []);
+
+  // Ignore = Descript's non-destructive strike: wrap the selection so it reads
+  // as skipped, leaving the words in the doc.
+  const ignoreSelection = () => {
+    const r = scriptRange.current;
+    if (!r) return;
+    const span = document.createElement("span");
+    span.className = "ignored";
+    try { r.surroundContents(span); }
+    catch { const frag = r.extractContents(); span.appendChild(frag); r.insertNode(span); }
+    const s = document.getSelection();
+    if (s) s.removeAllRanges();
+    setScriptSel(false);
+  };
+  const deleteSelection = () => {
+    const r = scriptRange.current;
+    if (!r) return;
+    r.deleteContents();
+    const s = document.getSelection();
+    if (s) s.removeAllRanges();
+    setScriptSel(false);
   };
 
   const drawerSend = (text) => {
@@ -567,6 +624,7 @@ function App() {
     onAddMedia: addMedia,
     sel: selection, setSel: setSelection,
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible,
+    onScriptTool: runScriptTool, scriptBusy,
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
@@ -576,7 +634,9 @@ function App() {
   // Command bar context: only the visible canvas (with media) drives selection-aware
   // actions. With no media or off-canvas, the bar shows just Ask Underlord ("none").
   const canvasVisible = panes.some((p) => { const tb = tabsById[p.activeId]; return tb && tb.kind === "video"; });
-  const cmdContext = (!videoAdded || !canvasVisible) ? "none" : (selection || "scene");
+  // A live transcript text selection takes the bar over; otherwise the canvas drives it.
+  const cmdContext = scriptSel ? "script"
+    : (!videoAdded || !canvasVisible) ? "none" : (selection || "scene");
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -625,7 +685,7 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density="comfortable" on={on} demo={demo}/>
-            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
+            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
           <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} onClose={() => setTlOpen(false)}/>
@@ -715,10 +775,11 @@ function TimelinePull({ onOpen }) {
 // in the Properties panel, not here. Ask Underlord is the "describe it" action.
 // [icon, tooltip, kind]; kind drives an action menu or (for delete) a handler.
 const CMD_SETS = {
-  scene: [["layout", "Change layout", "layout"], ["plus", "Add element", "add"], ["captions", "Captions", "captions"]],
-  video: [["effects", "Effects", "effects"], ["crop", "Crop", "crop"], ["replace", "Replace media", "replace"]],
-  text:  [["effects", "Effects", "textfx"], ["wand", "Animate", "animate"], ["trash", "Delete", "delete"]],
-  none:  [],
+  scene:  [["layout", "Change layout", "layout"], ["plus", "Add element", "add"], ["captions", "Captions", "captions"]],
+  video:  [["effects", "Effects", "effects"], ["crop", "Crop", "crop"], ["replace", "Replace media", "replace"]],
+  text:   [["effects", "Effects", "textfx"], ["wand", "Animate", "animate"], ["trash", "Delete", "delete"]],
+  script: [["ignore", "Ignore", "ignoreSel"], ["trash", "Delete", "deleteSel"]],
+  none:   [],
 };
 
 // Representative action menus (these "make sense" but don't deeply function —
@@ -773,20 +834,23 @@ function CmdRepMenu({ kind, left, bottom }) {
   );
 }
 
-function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onUnderlord, dockCenterX, dockBottom }) {
+function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgnore, onDeleteSel, onUnderlord, dockCenterX, dockBottom }) {
   const [menu, setMenu] = useState(null); // { kind, left, bottom }
   const set = CMD_SETS[context] || CMD_SETS.none;
   // Selection changes can strand an open menu — close it when context changes.
   useEffect(() => { setMenu(null); }, [context]);
   const onAction = (kind, e) => {
     if (kind === "delete") { onDeleteText(); return; }
+    if (kind === "ignoreSel") { onIgnore(); return; }
+    if (kind === "deleteSel") { onDeleteSel(); return; }
     const r = e.currentTarget.getBoundingClientRect();
     setMenu((m) => (m && m.kind === kind) ? null : { kind, left: r.left, bottom: window.innerHeight - r.top + 8 });
   };
   return (
     <>
       {menu && <div style={{ position:"fixed", inset:0, zIndex:39 }} onClick={() => setMenu(null)}></div>}
-      <div className="cmd-bar" style={{ left: dockCenterX, bottom: dockBottom }}>
+      {/* mousedown would collapse a transcript text selection before the click lands */}
+      <div className="cmd-bar" style={{ left: dockCenterX, bottom: dockBottom }} onMouseDown={(e) => e.preventDefault()}>
         {set.map(([icon, label, kind]) => {
           const I = Icons[icon] || Icons.wand;
           return <button key={kind} className={"fb" + (menu && menu.kind === kind ? " on" : "")}

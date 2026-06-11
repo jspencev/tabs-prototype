@@ -214,7 +214,7 @@ const ScriptDoc = React.memo(function ScriptDoc({ fillersRemoved, fillerStriking
                 <span className="tc">{p.ts}</span>
               </div>
             )}
-            <p className="para-tx">
+            <p className="para-tx" data-pid={p.id}>
               {idx === 0 && <span className="lead-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>}
               {p.tokens.map((t, i) => {
                 if (typeof t === "string") return <span key={i}>{t}</span>;
@@ -230,8 +230,20 @@ const ScriptDoc = React.memo(function ScriptDoc({ fillersRemoved, fillerStriking
   );
 });
 
-function ScriptSurface({ demo, onAddMedia }) {
+// pid -> { idx, name } of the chapter/scene a paragraph belongs to.
+function sceneOfParagraph(pid) {
+  const D = window.DEMO || { transcript: [] };
+  let idx = -1, name = null;
+  for (const p of D.transcript) {
+    if (p.chapterStart) { idx += 1; name = p.chapterStart; }
+    if (p.id === pid) return idx >= 0 ? { idx, name } : null;
+  }
+  return null;
+}
+
+function ScriptSurface({ demo, onAddMedia, onScriptTool, scriptBusy, compName }) {
   const flags = demo || {};
+  const [cursorScene, setCursorScene] = useState(null);
   if (!flags.videoAdded) {
     return (
       <div className="surf-script empty">
@@ -239,13 +251,40 @@ function ScriptSurface({ demo, onAddMedia }) {
       </div>
     );
   }
+  // Orientation: which scene is the caret/selection in right now?
+  const trackCursor = () => {
+    const s = document.getSelection();
+    const node = s && s.anchorNode;
+    const el = node && (node.nodeType === 1 ? node : node.parentElement);
+    const para = el && el.closest && el.closest("[data-pid]");
+    setCursorScene(para ? sceneOfParagraph(para.getAttribute("data-pid")) : null);
+  };
   // Content version: changes only on a scripted edit, forcing a clean remount.
   const version = [flags.fillersRemoved, flags.fillerStriking, flags.chaptersAdded, flags.rearranged].join("-");
   return (
     <div className="surf-script">
-      <ScriptDoc key={version}
-                 fillersRemoved={flags.fillersRemoved} fillerStriking={flags.fillerStriking}
-                 chaptersAdded={flags.chaptersAdded} rearranged={flags.rearranged}/>
+      <div className="canvas-bar script-bar">
+        <span className="cpill"><Icons.video/> {compName || "Main video"}</span>
+        {flags.scenesAdded && cursorScene && (
+          <span className="cpill"><Icons.scenes/> Scene {cursorScene.idx + 1} · {cursorScene.name}</span>
+        )}
+        <span className="sp"></span>
+        <button className={"cpill btn ai"} disabled={!!scriptBusy}
+                onClick={() => onScriptTool && onScriptTool("fillers")}>
+          {scriptBusy === "fillers" ? <span className="pspin"></span> : <Icons.sparkle/>}
+          {scriptBusy === "fillers" ? "Removing…" : "Remove filler words"}
+        </button>
+        <button className={"cpill btn ai"} disabled={!!scriptBusy}
+                onClick={() => onScriptTool && onScriptTool("clarity")}>
+          {scriptBusy === "clarity" ? <span className="pspin"></span> : <Icons.wand/>}
+          {scriptBusy === "clarity" ? "Editing…" : "Edit for clarity"}
+        </button>
+      </div>
+      <div className="script-scroll" onMouseUp={trackCursor} onKeyUp={trackCursor}>
+        <ScriptDoc key={version}
+                   fillersRemoved={flags.fillersRemoved} fillerStriking={flags.fillerStriking}
+                   chaptersAdded={flags.chaptersAdded} rearranged={flags.rearranged}/>
+      </div>
     </div>
   );
 }
@@ -514,13 +553,13 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, onScriptTool, scriptBusy }) {
   switch (tab.kind) {
     case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} onAddMedia={onAddMedia}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
-    case "script": return <ScriptSurface demo={demo} onAddMedia={onAddMedia}/>;
+    case "script": return <ScriptSurface demo={demo} onAddMedia={onAddMedia} onScriptTool={onScriptTool} scriptBusy={scriptBusy} compName={tab.compName}/>;
     case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;
