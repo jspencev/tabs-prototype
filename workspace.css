@@ -54,19 +54,16 @@
 .menu .mi .clip-label { max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .menu .mdiv { height:1px; background: var(--line-soft); margin:4px 2px; }
 
-/* [+] add-menu: per-composition rows with Canvas/Script actions */
-.add-menu { min-width:286px; }
-.add-menu .comp-row { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:7px; }
-.add-menu .comp-row:hover { background: var(--surf-hover); }
-.add-menu .comp-row > svg { width:14px; height:14px; flex:0 0 14px; color: var(--fg-3); }
-.add-menu .comp-row .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  font:500 12px/1.3 var(--font-sans); color: var(--fg-1); }
-.add-menu .comp-row .mini { height:22px; padding:0 7px; border:1px solid var(--line-med); border-radius:6px;
-  background: var(--surface-default); font:500 10.5px/1 var(--font-sans); color: var(--fg-2);
-  display:inline-flex; align-items:center; gap:4px; flex:0 0 auto; }
-.add-menu .comp-row .mini svg { width:11px; height:11px; }
-.add-menu .comp-row .mini:hover:not([disabled]) { background: var(--surf-hover); color: var(--fg-1); }
-.add-menu .comp-row .mini.open { opacity:.5; cursor:default; }
+/* [+] add-menu: per-composition rows with a Canvas/Script hover submenu */
+.add-menu { min-width:224px; }
+.menu .mi.open { opacity:.55; }
+.add-menu .comp-parent { position:relative; display:flex; align-items:center; gap:9px; padding:7px 8px;
+  border-radius:6px; color: var(--fg-1); font:500 12.5px/1 var(--font-sans); }
+.add-menu .comp-parent:hover { background: var(--surf-hover); }
+.add-menu .comp-parent > svg:first-child { width:16px; height:16px; flex:0 0 16px; opacity:.8; }
+.add-menu .comp-parent .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.add-menu .comp-parent .chev { width:13px; height:13px; flex:0 0 13px; opacity:.5; margin-left:4px; }
+.add-menu .submenu { position:absolute; left:100%; top:-7px; margin-left:2px; min-width:150px; z-index:41; }
 .menu .name-row { display:flex; gap:6px; padding:5px 6px 4px; }
 .menu .name-row input { flex:1; min-width:0; height:26px; padding:0 8px; border:1px solid var(--line-med);
   border-radius:6px; background: var(--surface-default); font:400 12px/1 var(--font-sans);

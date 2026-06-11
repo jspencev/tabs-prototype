@@ -49,8 +49,9 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [naming, setNaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
+  const [hoverComp, setHoverComp] = useState(null);
   const toggleMenu = () => {
-    setNaming(false); setNameDraft("");
+    setNaming(false); setNameDraft(""); setHoverComp(null);
     if (menu) { setMenu(false); return; }
     const r = addRef.current && addRef.current.getBoundingClientRect();
     if (r) setMenuPos({ top: r.bottom + 6, left: r.left });
@@ -59,6 +60,19 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
   // Is this composition's Canvas/Script already open as a tab?
   const compOpen = (compId, kind) =>
     Object.values(tabsById).some((tb) => tb.kind === kind && (tb.comp || "main") === compId);
+  // Open-aware Canvas/Script line item for a composition (dim + "Open" badge,
+  // click focuses the existing tab via openSurface reuse).
+  const compItem = (c, kind, label) => {
+    const isOpen = compOpen(c.id, kind);
+    const I = kind === "video" ? Icons.video : Icons.script;
+    return (
+      <div className={"mi" + (isOpen ? " open" : "")}
+           onClick={() => { on.openComp(pane.id, c, kind); setMenu(false); }}>
+        <I/> {label}
+        {isOpen && <span className="k">Open</span>}
+      </div>
+    );
+  };
   const createComp = () => {
     on.newComposition(pane.id, nameDraft);
     setNaming(false); setNameDraft(""); setMenu(false);
@@ -83,25 +97,31 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
               <>
                 <div style={{position:"fixed",inset:0,zIndex:39}} onClick={() => setMenu(false)}></div>
                 <div className="menu add-menu" style={{ position:"fixed", top:menuPos.top, left:menuPos.left }}>
-                  <div className="mlabel">Compositions</div>
-                  {(on.comps || []).map((c) => {
-                    const canvasOpen = compOpen(c.id, "video");
-                    const scriptOpen = compOpen(c.id, "script");
-                    return (
-                      <div className="comp-row" key={c.id} title={c.name}>
-                        <Icons.scenes/>
-                        <span className="nm">{c.name}</span>
-                        <button className={"mini" + (canvasOpen ? " open" : "")} disabled={canvasOpen}
-                                onClick={() => { on.openComp(pane.id, c, "video"); setMenu(false); }}>
-                          <Icons.video/> Canvas
-                        </button>
-                        <button className={"mini" + (scriptOpen ? " open" : "")} disabled={scriptOpen}
-                                onClick={() => { on.openComp(pane.id, c, "script"); setMenu(false); }}>
-                          <Icons.script/> Script
-                        </button>
-                      </div>
-                    );
-                  })}
+                  {(on.comps || []).length <= 1 ? (
+                    <>
+                      {compItem((on.comps && on.comps[0]) || { id: "main", name: "Main video" }, "video", "Canvas")}
+                      {compItem((on.comps && on.comps[0]) || { id: "main", name: "Main video" }, "script", "Script")}
+                    </>
+                  ) : (
+                    <>
+                      <div className="mlabel">Compositions</div>
+                      {on.comps.map((c) => (
+                        <div className="comp-parent" key={c.id}
+                             onMouseEnter={() => setHoverComp(c.id)}
+                             onMouseLeave={() => setHoverComp((h) => (h === c.id ? null : h))}>
+                          <Icons.scenes/>
+                          <span className="nm" title={c.name}>{c.name}</span>
+                          <Icons.chevR className="chev"/>
+                          {hoverComp === c.id && (
+                            <div className="menu submenu" onMouseEnter={() => setHoverComp(c.id)}>
+                              {compItem(c, "video", "Canvas")}
+                              {compItem(c, "script", "Script")}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
                   <div className="mlabel">App</div>
                   {ADD_MENU.map((k) => {
                     const I = Icons[SURFACE_DEFS[k].icon];
