@@ -54,7 +54,7 @@ function App() {
   const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
   const [ulOpen, setUlOpen] = useState(true);
   const [tlOpen, setTlOpen] = useState(false);
-  const [modOpen, setModOpen] = useState(false); // moderator panel (Ctrl+.)
+  const [modOpen, setModOpen] = useState(false); // moderator panel (Cmd+Shift+P)
 
   // ---- tab system ----
   const [tabsById, setTabsById] = useState(() => INITIAL.tabsById);
@@ -69,6 +69,9 @@ function App() {
   const planId = useRef(null);
   const reviewId = useRef(null);
   const timer = useRef(null);
+  // One-time onboarding: the very first new tab a user opens lands as a split
+  // on the other side, to teach the multi-pane model.
+  const firstOpenSplit = useRef(true);
 
   // ---- ephemeral mist chat (summoned by "/") — its own conversation ----
   const [mistOpen, setMistOpen] = useState(false);
@@ -115,7 +118,12 @@ function App() {
   const scriptRange = useRef(null);
   const scriptTimer = useRef(null);
   const [mediaSeg, setMediaSeg] = useState("project"); // Media browser segment
-  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded };
+  // Intro slide (Underlord "Add an intro"): a title slide before the video.
+  // playZone tracks which timeline section the playhead sits in.
+  const [introAdded, setIntroAdded] = useState(false);
+  const [introBg, setIntroBg] = useState(null);        // CSS background from a Stock tile
+  const [playZone, setPlayZone] = useState("video");   // 'intro' | 'video'
+  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded, introAdded };
 
   // ===== tab operations =====
   const activate = (paneId, tabId) =>
@@ -154,6 +162,14 @@ function App() {
     }
     const nt = makeTab(kind, { comp, ...extra });
     setTabsById((m) => ({ ...m, [nt.id]: nt }));
+    // First new tab ever opens as a split on the other side (once per session).
+    if (firstOpenSplit.current) {
+      firstOpenSplit.current = false;
+      setPanes((ps) => ps.length > 1
+        ? ps.map((p) => p.id === paneId ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p)
+        : [...ps, { id: uid("p"), tabIds: [nt.id], activeId: nt.id }]);
+      return nt.id;
+    }
     setPanes((ps) => ps.map((p) => p.id === paneId
       ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: focus ? nt.id : p.activeId } : p));
     return nt.id;
@@ -422,6 +438,7 @@ function App() {
     if (/chapter/.test(t)) { runChapters(text); return; }
     if (/what clips|which clips|where.+clips|clips.+(exist|project)|find (the |my )?clips|show.+clips/.test(t)) { runListClips(text); return; }
     if (/create clips|make (some )?clips|social clips|clip the|cut.+clips/.test(t)) { runCreateClips(text); return; }
+    if (/add (an |the )?intro|intro (slide|title)/.test(t)) { runAddIntro(text); return; }
     if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
     runGenericAck(text, setConvo, setThinking, timer);
   };
@@ -431,7 +448,7 @@ function App() {
   const applyScenario = (s) => {
     setScenario(s);
     const b = scenarioBaseline(s);
-    planId.current = null; reviewId.current = null;
+    planId.current = null; reviewId.current = null; firstOpenSplit.current = true;
     clearTimeout(timer.current); clearTimeout(mistTimer.current);
     setTabsById(b.tabsById); setPanes(b.panes);
     setVideoAdded(b.flags.videoAdded); setFillersRemoved(b.flags.fillersRemoved);
@@ -441,6 +458,7 @@ function App() {
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
     setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
     setMediaSeg("project"); setCustomComps([]); setCompsOpen(false);
+    setIntroAdded(false); setIntroBg(null); setPlayZone("video");
     setTlOpen(false);
     setView("editor");
   };
@@ -489,7 +507,7 @@ function App() {
   const removeStudioSound = () => { if (fx.studioSound) toggleEffect("studioSound"); setSsPop(null); };
   const deleteTextLayer = () => {
     if (selection === "text2") setFreeTextVisible(false);
-    else setTextLayerVisible(false);
+    else if (selection !== "introTitle") setTextLayerVisible(false);
     setSelection(null);
   };
 
@@ -603,6 +621,35 @@ function App() {
     }, 1000);
   };
 
+  // ===== intro slide ("Add an intro") =====
+  const runAddIntro = (text) => {
+    setConvo((c) => [...c, { role: "user", text: text || "Add an intro" }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setIntroAdded(true);
+      setPlayZone("intro");
+      setTlOpen(true);
+      openSurface(panes[panes.length - 1].id, "video", true, "main");
+      setConvo((c) => [...c, { role: "ai",
+        text: "Added an intro slide before your video — you can see it at the start of the timeline. Edit the title right on the canvas, or grab a background clip from Stock with the + button." }]);
+    }, 1500);
+  };
+
+  // Stock "+" (Add as new layer): with an intro, the clip drops in behind the
+  // intro title; otherwise it behaves like a plain add-to-canvas.
+  const onStockAdd = (item, gradient) => {
+    if (introAdded) {
+      if (gradient) setIntroBg(gradient);
+      setPlayZone("intro");
+      openSurface(panes[panes.length - 1].id, "video", true, "main");
+      return;
+    }
+    if (!videoAdded) { addMedia(); }
+    openSurface(panes[panes.length - 1].id, "video", true, "main");
+  };
+
   // ===== guided demo: skills =====
   const onSkill = (id) => {
     if (id === "fillers") runFillerBeat();
@@ -709,10 +756,10 @@ function App() {
     return () => window.removeEventListener("keydown", h);
   }, [mistOpen, view]);
 
-  // Ctrl+. (or Cmd+.) toggles the hidden moderator panel.
+  // Cmd+Shift+P (or Ctrl+Shift+P) toggles the hidden moderator panel.
   useEffect(() => {
     const h = (e) => {
-      if (e.key === "." && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setModOpen((o) => !o); }
+      if ((e.key === "p" || e.key === "P") && e.shiftKey && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setModOpen((o) => !o); }
       else if (e.key === "Escape") setModOpen(false);
     };
     window.addEventListener("keydown", h);
@@ -728,6 +775,7 @@ function App() {
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
     mediaSeg, setMediaSeg, openClip,
+    intro: { added: introAdded, bg: introBg, zone: playZone }, onStockAdd,
     newComposition, onFillBlank: fillBlankComp, openComp,
     comps: [
       { id: "main", name: "Main video" },
@@ -751,7 +799,7 @@ function App() {
   // scene context; otherwise just Ask Underlord.
   const cmdContext = !videoAdded ? "none"
     : scriptSel ? "script"
-    : selection ? (selection === "text2" ? "text" : selection)
+    : selection ? (selection === "text2" || selection === "introTitle" ? "text" : selection)
     : canvasVisible ? "scene" : "none";
 
   if (view === "home") return <Home onStart={enterEditor}/>;
@@ -858,7 +906,7 @@ function App() {
             {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
-          <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} appSel={selection} setAppSel={setSelection} onClose={() => setTlOpen(false)}/>
+          <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} appSel={selection} setAppSel={setSelection} playZone={playZone} onPlayZone={setPlayZone} onClose={() => setTlOpen(false)}/>
         </div>
       </div>
 
@@ -899,7 +947,7 @@ function App() {
   );
 }
 
-// Hidden moderator panel (Ctrl+. / Cmd+.) — snaps the editor to a research
+// Hidden moderator panel (Cmd+Shift+P / Ctrl+Shift+P) — snaps the editor to a research
 // set-up state between tasks. Participants never see it.
 function ModeratorPanel({ scenario, onScenario, onReset, onClose }) {
   return (

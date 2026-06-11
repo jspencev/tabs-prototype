@@ -59,42 +59,33 @@ function UploadEmpty({ onAddMedia }) {
 }
 window.UploadEmpty = UploadEmpty;
 
-// Floating text toolbar — a slim clone of Descript's TextPropertyToolbar,
-// anchored above the selected text layer (font, size, color, alignment).
-function CanvasTextToolbar({ st, set, pos, centered }) {
-  const FONTS = window.TEXT_FONTS || ["Booton"];
-  return (
-    <div className="txt-toolbar"
-         style={{ left: Math.min(72, Math.max(4, pos.x)) + "%", top: Math.max(2, pos.y - 11) + "%",
-                  transform: centered ? "translate(-50%,-100%)" : "translateY(-100%)" }}
-         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-      <select className="tt-font" value={st.fontFamily} onChange={(e) => set("fontFamily", e.target.value)}>
-        {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
-      </select>
-      <div className="tt-step">
-        <button onClick={() => set("fontSize", Math.max(8, st.fontSize - 2))}>−</button>
-        <span>{st.fontSize}</span>
-        <button onClick={() => set("fontSize", Math.min(220, st.fontSize + 2))}>+</button>
-      </div>
-      <label className="tt-color" title="Text color">
-        <span className="swatch" style={{ background: st.color }}></span>
-        <input type="color" value={st.color} onChange={(e) => set("color", e.target.value)}/>
-      </label>
-      <span className="tt-div"></span>
-      {[["left", "alignL"], ["center", "alignC"], ["right", "alignR"]].map(([v, ic]) => {
-        const I = Icons[ic];
-        return <button key={v} className={"tt-btn" + (st.textAlign === v ? " on" : "")}
-                       title={"Align " + v} onClick={() => set("textAlign", v)}><I/></button>;
-      })}
-    </div>
-  );
-}
-
 // VideoSurface is controlled: selection (sel/setSel) and effects (fx) are owned
 // by App so the bottom command bar and the property panels share one source of
 // truth. Pure attributes (scale, rotation, etc.) stay local for the panels.
-function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onAddMedia, compName }) {
+function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onAddMedia, compName, intro, onStockAdd }) {
+  const [stockOver, setStockOver] = useState(false);
+  const stockDragOver = (e) => {
+    if (![...e.dataTransfer.types].includes("application/x-stock")) return;
+    e.preventDefault(); setStockOver(true);
+  };
+  const stockDrop = (e) => {
+    const raw = e.dataTransfer.getData("application/x-stock");
+    setStockOver(false);
+    if (!raw) return;
+    e.preventDefault();
+    let data; try { data = JSON.parse(raw); } catch { return; }
+    if (onStockAdd) onStockAdd({ t: data.t }, data.g || null);
+  };
   const added = !!(demo && demo.videoAdded);
+  // Intro slide: shown instead of the video frame while the playhead sits in
+  // the timeline's intro section.
+  const showIntro = added && intro && intro.added && intro.zone === "intro";
+  const [introTitle, setIntroTitle] = useState({
+    text: "Add a title", fontFamily: "Booton", fontSize: 52, weight: 600, italic: false,
+    textAlign: "center", verticalAlign: "middle", lineHeight: 1.15, letterSpacing: 0,
+    color: "#FFF8F4", box: "auto-width", opacity: 100, x: 50, y: 42,
+  });
+  const setIntro = (k, v) => setIntroTitle((s) => ({ ...s, [k]: v }));
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
     transition: "fade", transDur: 0.5, length: 8, blur: 0,
@@ -141,6 +132,8 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
 
   // Clear the app-level selection when the canvas surface unmounts.
   useEffect(() => () => { if (setSel) setSel(null); }, []);
+  // Crossing the intro/video boundary invalidates the current selection.
+  useEffect(() => { if (setSel) setSel(null); }, [showIntro]);
 
   const fxActive = fx && (fx.studioSound || fx.ssBusy || fx.eyeContact || fx.ecBusy || fx.centerSpeaker || fx.csBusy);
   const badge = (on, busy, icon, label) => {
@@ -155,7 +148,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
         {added && <span className="cpill comp"><Icons.video/> {compName || "Main video"}</span>}
         <button className={"cpill btn" + (sel === "scene" ? " sel" : "")}
                 onClick={(e) => { e.stopPropagation(); if (added) setSel("scene"); }}>
-          <Icons.scenes/> {added ? sc.name : "No scenes yet"}
+          <Icons.scenes/> {added ? (showIntro ? "Intro" : sc.name) : "No scenes yet"}
         </button>
         <span className="cpill">1920 × 1080</span>
         {sel === "video" && fx && <>
@@ -168,8 +161,24 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
         <span className="sp"></span>
         <span className="zoom">Fit</span>
       </div>
-      <div className="stage-wrap" onClick={() => setSel(null)}>
-        {added ? (
+      <div className={"stage-wrap" + (stockOver ? " stock-over" : "")} onClick={() => setSel(null)}
+           onDragOver={stockDragOver} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setStockOver(false); }}
+           onDrop={stockDrop}>
+        {added && showIntro ? (
+          <div className="stage stage-video stage-intro" ref={stageRef}>
+            <div className="intro-slide" style={{ background: intro.bg || "#17131a" }}></div>
+            <div className={"free-text intro-title" + (sel === "introTitle" ? " sel" : "")}
+                 style={{ left: introTitle.x + "%", top: introTitle.y + "%",
+                          fontFamily: (FONT_STACK[introTitle.fontFamily] || "inherit"), fontSize: introTitle.fontSize,
+                          fontWeight: introTitle.weight, color: introTitle.color, textAlign: introTitle.textAlign,
+                          fontStyle: introTitle.italic ? "italic" : "normal", opacity: introTitle.opacity / 100 }}
+                 onMouseDown={(e) => layerDown(e, "introTitle", introTitle, setIntro)}
+                 onClick={(e) => e.stopPropagation()}>
+              {introTitle.text}
+              {sel === "introTitle" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
+            </div>
+          </div>
+        ) : added ? (
           <div className="stage stage-video" ref={stageRef} style={{ borderRadius: vid.radius }}>
             <img src="video-thumb.png" alt="Video"
                  style={{ opacity: vid.opacity / 100, transform: `scale(${vid.scale / 100})` }}
@@ -205,8 +214,6 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
                 {sel === "text2" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
               </div>
             )}
-            {sel === "text"  && <CanvasTextToolbar st={txt} set={setText} pos={{ x: txt.x, y: txt.y }}/>}
-            {sel === "text2" && <CanvasTextToolbar st={txt2} set={setText2} pos={{ x: txt2.x, y: txt2.y }} centered/>}
             {sel === "video" && <div className="vid-frame" style={{ borderRadius: vid.radius }}>
               <span className="tag">Video</span>
               <span className="h tl"></span><span className="h tr"></span>
@@ -221,6 +228,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
       {sel === "scene" && <SceneProperties sc={sc} set={setScene} onClose={() => setSel(null)}/>}
       {sel === "text"  && <TextProperties st={txt} set={setText} onClose={() => setSel(null)} side="right"/>}
       {sel === "text2" && <TextProperties st={txt2} set={setText2} onClose={() => setSel(null)} side="right"/>}
+      {sel === "introTitle" && <TextProperties st={introTitle} set={setIntro} onClose={() => setSel(null)} side="right"/>}
     </div>
   );
 }
@@ -587,7 +595,7 @@ const STOCK_GRADS = [
   "linear-gradient(135deg,#8b3a5a,#d58c6a)", "linear-gradient(135deg,#6f58bd,#a3a3ee)",
 ];
 
-function StockSection({ title, items, query, audio }) {
+function StockSection({ title, items, query, audio, onAdd }) {
   const q = query.trim().toLowerCase();
   const hits = q ? items.filter((it) => it.t.toLowerCase().includes(q)) : items;
   if (hits.length === 0) return null;
@@ -605,19 +613,29 @@ function StockSection({ title, items, query, audio }) {
               <button className="sa-play"><Icons.play/></button>
               <span className="sa-nm">{it.t}</span>
               <span className="sa-dur">{it.d}</span>
+              <button className="sa-add" title="Add as new layer" aria-label="Add as new layer"
+                      onClick={(e) => { e.stopPropagation(); if (onAdd) onAdd(it, null); }}><Icons.plusSquare/></button>
             </div>
           ))}
         </div>
       ) : (
         <div className="stk-grid">
-          {hits.map((it, i) => (
-            <div className="stk-tile" key={it.t} draggable title={it.t}>
-              <span className="st-thumb" style={{ background: STOCK_GRADS[i % STOCK_GRADS.length] }}>
+          {hits.map((it, i) => {
+            const grad = STOCK_GRADS[i % STOCK_GRADS.length];
+            return (
+            <div className="stk-tile" key={it.t} draggable title={it.t}
+                 onDragStart={(e) => e.dataTransfer.setData("application/x-stock", JSON.stringify({ t: it.t, g: grad }))}>
+              <span className="st-thumb" style={{ background: grad }}>
                 {it.d && <span className="st-dur">{it.d}</span>}
+                <span className="st-actions">
+                  <button className="st-add" title="Add as new layer" aria-label="Add as new layer"
+                          onClick={(e) => { e.stopPropagation(); if (onAdd) onAdd(it, grad); }}><Icons.plusSquare/></button>
+                </span>
               </span>
               <span className="st-nm">{it.t}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -627,7 +645,7 @@ function StockSection({ title, items, query, audio }) {
 const MEDIA_SEGS = [["project", "Project"], ["stock", "Stock"], ["generate", "Generate"]];
 const GEN_TYPES = ["Image", "Video", "Music", "Sound effect"];
 
-function MediaSurface({ demo, onAddMedia, seg = "project", setSeg }) {
+function MediaSurface({ demo, onAddMedia, seg = "project", setSeg, onStockAdd }) {
   const added = !!(demo && demo.videoAdded);
   const D = window.DEMO || {};
   const S = D.stock || { videos: [], images: [], music: [], sfx: [] };
@@ -723,13 +741,13 @@ function MediaSurface({ demo, onAddMedia, seg = "project", setSeg }) {
           <div className="stk-body">
             {av === "visuals" ? (
               <>
-                <StockSection title="Videos" items={S.videos} query={q}/>
-                <StockSection title="Images" items={S.images} query={q}/>
+                <StockSection title="Videos" items={S.videos} query={q} onAdd={onStockAdd}/>
+                <StockSection title="Images" items={S.images} query={q} onAdd={onStockAdd}/>
               </>
             ) : (
               <>
-                <StockSection title="Music" items={S.music} query={q} audio/>
-                <StockSection title="Sound effects" items={S.sfx} query={q} audio/>
+                <StockSection title="Music" items={S.music} query={q} audio onAdd={onStockAdd}/>
+                <StockSection title="Sound effects" items={S.sfx} query={q} audio onAdd={onStockAdd}/>
               </>
             )}
           </div>
@@ -778,16 +796,16 @@ function Placeholder({ icon, title, body }) {
 }
 
 // resolve a surface by its kind
-function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg, onFillBlank }) {
+function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg, onFillBlank, intro, onStockAdd }) {
   switch (tab.kind) {
     // A blank composition tab renders the empty canvas; its upload only fills
     // this tab (clears `blank`), it doesn't touch global project state.
-    case "video":  return <VideoSurface demo={tab.blank ? { ...demo, videoAdded: false } : demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={tab.blank ? () => onFillBlank(tab.id) : onAddMedia} compName={tab.compName}/>;
+    case "video":  return <VideoSurface demo={tab.blank ? { ...demo, videoAdded: false } : demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={tab.blank ? () => onFillBlank(tab.id) : onAddMedia} compName={tab.compName} intro={(tab.comp || "main") === "main" ? intro : null} onStockAdd={onStockAdd}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
     case "script": return <ScriptSurface demo={tab.blank ? { ...demo, videoAdded: false } : demo} onAddMedia={tab.blank ? () => onFillBlank(tab.id) : onAddMedia} onScriptTool={onScriptTool} scriptBusy={scriptBusy} compName={tab.compName}/>;
-    case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia} seg={mediaSeg} setSeg={setMediaSeg}/>;
+    case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia} seg={mediaSeg} setSeg={setMediaSeg} onStockAdd={onStockAdd}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;
     case "captions":return <Placeholder icon="captions" title="Captions" body="Style, position and time your auto-generated captions."/>;

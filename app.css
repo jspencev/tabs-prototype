@@ -125,7 +125,7 @@ button { font-family: inherit; cursor: pointer; }
 .clip-row .cr-sub { font:400 10px/1.2 var(--font-mono); color: var(--fg-3); margin-top:1px; }
 .clip-row .cr-open { font:600 10.5px/1 var(--font-sans); color: var(--accent-fg-primary); white-space:nowrap; }
 
-/* ============ Moderator panel (Ctrl+.) ============ */
+/* ============ Moderator panel (Cmd+Shift+P) ============ */
 .mod-panel { position:fixed; right:16px; bottom:16px; z-index:200; width:264px;
   background: var(--surface-elevated); border:1px solid var(--line-med); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop, 0 12px 32px rgba(0,0,0,.18)); padding:10px; display:flex; flex-direction:column; gap:4px; }

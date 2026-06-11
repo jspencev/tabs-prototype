@@ -7,6 +7,9 @@ const { useState, useRef } = React;
 const TL_DENSITY = { compact: 28, default: 60, large: 92 }; // media/audio row height
 const TL_VECTOR_H = 28;                                      // vector rows ignore density
 const TL_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3];
+// Length of the prepended intro slide. Deliberately oversized for the demo:
+// against a ~21-minute recording it has to stay a clickable playhead target.
+const TL_INTRO_DUR = 60;
 const TL_WAVE = Array.from({ length: 64 }, (_, i) =>
   26 + Math.round(58 * Math.abs(Math.sin(i * 0.7) * Math.cos(i * 0.27 + 1))));
 
@@ -21,25 +24,46 @@ function TlWave({ color }) {
   return <div className="tl-wbars" style={{ color }}>{TL_WAVE.map((h, i) => <i key={i} style={{ height: h + "%" }}/>)}</div>;
 }
 
-function Timeline({ open, height, demo, appSel, setAppSel, onClose }) {
+function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone, onClose }) {
   const D = window.DEMO || {};
   const full = D.timeline || { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } };
   // Scenario-aware content: empty → nothing; post-upload → one unsegmented
   // recording, no pins; rough-cut+ → the full scene/pin model.
   const videoAdded = !!(demo && demo.videoAdded);
   const scenesAdded = !!(demo && demo.scenesAdded);
-  const model = !videoAdded
+  const introAdded = !!(demo && demo.introAdded);
+  const base = !videoAdded
     ? { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } }
     : !scenesAdded
       ? { durationSec: full.durationSec,
           scenes: [{ name: D.fileName || "Recording", startSec: 0, durSec: full.durationSec }],
           pins: [], script: full.script }
       : full;
+  // "Add an intro" prepends a title slide: shift everything right by its length.
+  const model = introAdded
+    ? { durationSec: base.durationSec + TL_INTRO_DUR,
+        scenes: [{ name: "Intro", startSec: 0, durSec: TL_INTRO_DUR, intro: true },
+                 ...base.scenes.map((s) => ({ ...s, startSec: s.startSec + TL_INTRO_DUR }))],
+        pins: base.pins.map((p) => ({ ...p, startSec: p.startSec + TL_INTRO_DUR })),
+        script: { words: ((base.script && base.script.words) || []).map((w) => ({ ...w, startSec: w.startSec + TL_INTRO_DUR })),
+                  segments: ((base.script && base.script.segments) || []).map((s) => ({ ...s, startSec: s.startSec + TL_INTRO_DUR })) } }
+    : base;
   const dur = model.durationSec || 1;
   const [pins, setPins] = useState(() => model.pins.map((p) => ({ ...p })));
   const [sel, setSel] = useState(null);
-  React.useEffect(() => { setPins(model.pins.map((p) => ({ ...p }))); setSel(null); }, [videoAdded, scenesAdded]);
+  React.useEffect(() => { setPins(model.pins.map((p) => ({ ...p }))); setSel(null); }, [videoAdded, scenesAdded, introAdded]);
   const [playSec, setPlaySec] = useState(215);
+  // When the intro lands, park the playhead inside it so the canvas shows it;
+  // afterwards every seek reports which section the playhead is in.
+  React.useEffect(() => { if (introAdded) setPlaySec(TL_INTRO_DUR / 2); }, [introAdded]);
+  React.useEffect(() => {
+    if (introAdded && onPlayZone) onPlayZone(playSec < TL_INTRO_DUR ? "intro" : "video");
+  }, [introAdded, playSec]);
+  // The app can force the intro zone (e.g. Stock "+" drops a clip behind the
+  // intro) — pull the playhead back into the intro to match.
+  React.useEffect(() => {
+    if (introAdded && playZone === "intro" && playSec >= TL_INTRO_DUR) setPlaySec(TL_INTRO_DUR / 2);
+  }, [introAdded, playZone]);
   const [density, setDensity] = useState("default");
   const [zoom, setZoom] = useState(68);
   const [playing, setPlaying] = useState(false);
@@ -187,7 +211,13 @@ function Timeline({ open, height, demo, appSel, setAppSel, onClose }) {
             {/* scene ribbon — the a-roll. Clicking selects it app-wide (Task 9). */}
             <div className="tl-ribbon">
               {!videoAdded && <div className="tl-empty">Add media to your project to see the timeline</div>}
-              {scenes.map((sc, i) => (
+              {scenes.map((sc, i) => sc.intro ? (
+                <div className="tl-scene intro" key={i}
+                     style={{ left: pct(sc.startSec) + "%", width: pct(sc.durSec) + "%" }}
+                     onMouseDown={(e) => { e.stopPropagation(); setPlaySec(sc.startSec + sc.durSec / 2); }}>
+                  <div className="ts-name">{sc.name}</div>
+                </div>
+              ) : (
                 <div className={"tl-scene" + (appSel === "video" ? " sel" : "")} key={i}
                      style={{ left: pct(sc.startSec) + "%", width: pct(sc.durSec) + "%" }}
                      onMouseDown={(e) => { e.stopPropagation(); if (setAppSel) setAppSel("video"); }}>
