@@ -16,8 +16,13 @@ window.SURFACE_DEFS = SURFACE_DEFS;
 
 const ADD_MENU = ["media", "publish", "settings"]; // project-level surfaces (comps get their own section)
 
-function Tab({ tab, active, paneId, density, drag, on }) {
+function Tab({ tab, active, paneId, density, drag, on, multiComp }) {
   const I = Icons[tab.icon] || Icons.doc;
+  // Only composition-scoped surfaces carry a label, and only when there's more
+  // than one composition to disambiguate (otherwise it'd be noise).
+  const isCompSurface = tab.kind === "video" || tab.kind === "script";
+  const compLabel = tab.compName || (tab.comp === "main" ? "Main video" : null);
+  const showComp = multiComp && isCompSurface && compLabel;
   return (
     <div
       className={"tab" + (active ? " active" : "") + (tab.closeable ? "" : " anchor")
@@ -31,7 +36,7 @@ function Tab({ tab, active, paneId, density, drag, on }) {
     >
       <span className="ti"><I/></span>
       <span className="lbl">{tab.label}</span>
-      {tab.compName && <span className="comp" title={"Composition: " + tab.compName}>{tab.compName}</span>}
+      {showComp && <span className="comp" title={"Composition: " + compLabel}>{compLabel}</span>}
       {!tab.closeable
         ? <span className="ti lock" title="Always open"><Icons.lock/></span>
         : <button className="x" title="Close tab"
@@ -88,7 +93,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
         onDrop={(e) => { e.preventDefault(); on.moveTab(drag.id, pane.id, drag.overTab); drag.set(null, null); }}>
         {pane.tabIds.map((id) => tabsById[id] && (
           <Tab key={id} tab={tabsById[id]} active={id === pane.activeId} paneId={pane.id}
-               density={density} drag={drag} on={on}/>
+               density={density} drag={drag} on={on} multiComp={(on.comps || []).length > 1}/>
         ))}
         <div className="strip-actions">
           <div style={{ position:"relative" }}>
