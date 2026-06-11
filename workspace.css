@@ -459,6 +459,10 @@
 
 /* scene ribbon */
 .tl-ribbon { height:54px; flex:0 0 54px; position:relative; border-bottom:1px solid var(--line-soft); background: var(--surface-recessed); }
+.tl-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font:500 11.5px/1 var(--font-sans); color: var(--fg-3); }
+.tl-scene { cursor:pointer; }
+.tl-scene.sel { outline:2px solid var(--blurple-500); outline-offset:-1px; }
 .tl-scene { position:absolute; top:5px; bottom:5px; overflow:hidden; border-radius:5px; border:1px solid var(--line-med);
   background:#000 center/cover; }
 .tl-scene .ts-film { position:absolute; inset:0; background:#000 center/cover no-repeat; opacity:.85; }

@@ -664,10 +664,13 @@ function App() {
   // Command bar context: only the visible canvas (with media) drives selection-aware
   // actions. With no media or off-canvas, the bar shows just Ask Underlord ("none").
   const canvasVisible = panes.some((p) => { const tb = tabsById[p.activeId]; return tb && tb.kind === "video"; });
-  // A live transcript text selection takes the bar over; otherwise the canvas drives it.
-  const cmdContext = scriptSel ? "script"
-    : (!videoAdded || !canvasVisible) ? "none"
-    : (selection === "text2" ? "text" : (selection || "scene"));
+  // A live transcript text selection takes the bar over; an explicit selection
+  // (canvas layer or timeline a-roll) drives it next; the visible canvas implies
+  // scene context; otherwise just Ask Underlord.
+  const cmdContext = !videoAdded ? "none"
+    : scriptSel ? "script"
+    : selection ? (selection === "text2" ? "text" : selection)
+    : canvasVisible ? "scene" : "none";
 
   if (view === "home") return <Home onStart={enterEditor}/>;
 
@@ -719,7 +722,7 @@ function App() {
             {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
-          <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} onClose={() => setTlOpen(false)}/>
+          <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} appSel={selection} setAppSel={setSelection} onClose={() => setTlOpen(false)}/>
         </div>
       </div>
 

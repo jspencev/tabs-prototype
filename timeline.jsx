@@ -21,12 +21,24 @@ function TlWave({ color }) {
   return <div className="tl-wbars" style={{ color }}>{TL_WAVE.map((h, i) => <i key={i} style={{ height: h + "%" }}/>)}</div>;
 }
 
-function Timeline({ open, height, onClose }) {
+function Timeline({ open, height, demo, appSel, setAppSel, onClose }) {
   const D = window.DEMO || {};
-  const model = D.timeline || { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } };
+  const full = D.timeline || { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } };
+  // Scenario-aware content: empty → nothing; post-upload → one unsegmented
+  // recording, no pins; rough-cut+ → the full scene/pin model.
+  const videoAdded = !!(demo && demo.videoAdded);
+  const scenesAdded = !!(demo && demo.scenesAdded);
+  const model = !videoAdded
+    ? { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } }
+    : !scenesAdded
+      ? { durationSec: full.durationSec,
+          scenes: [{ name: D.fileName || "Recording", startSec: 0, durSec: full.durationSec }],
+          pins: [], script: full.script }
+      : full;
   const dur = model.durationSec || 1;
   const [pins, setPins] = useState(() => model.pins.map((p) => ({ ...p })));
   const [sel, setSel] = useState(null);
+  React.useEffect(() => { setPins(model.pins.map((p) => ({ ...p }))); setSel(null); }, [videoAdded, scenesAdded]);
   const [playSec, setPlaySec] = useState(215);
   const [density, setDensity] = useState("default");
   const [zoom, setZoom] = useState(68);
@@ -172,10 +184,13 @@ function Timeline({ open, height, onClose }) {
           </div>
 
           <div className="tl-tracks-area" ref={areaRef}>
-            {/* scene ribbon */}
+            {/* scene ribbon — the a-roll. Clicking selects it app-wide (Task 9). */}
             <div className="tl-ribbon">
+              {!videoAdded && <div className="tl-empty">Add media to your project to see the timeline</div>}
               {scenes.map((sc, i) => (
-                <div className="tl-scene" key={i} style={{ left: pct(sc.startSec) + "%", width: pct(sc.durSec) + "%" }}>
+                <div className={"tl-scene" + (appSel === "video" ? " sel" : "")} key={i}
+                     style={{ left: pct(sc.startSec) + "%", width: pct(sc.durSec) + "%" }}
+                     onMouseDown={(e) => { e.stopPropagation(); if (setAppSel) setAppSel("video"); }}>
                   <div className="ts-film" style={{ backgroundImage: "url(video-thumb.png)" }}></div>
                   <div className="ts-name">{sc.name}</div>
                 </div>
