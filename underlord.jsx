@@ -11,7 +11,7 @@ const relTime = (ts) => {
   return Math.floor(h / 24) + "d";
 };
 
-function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onReview, onClose }) {
+function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onChip, onNewChat, history, onSelectHistory, onSkill, onPlanGo, onReview, onOpenClip, onClose }) {
   const [draft, setDraft] = useState("");
   const [histOpen, setHistOpen] = useState(false);
   const [histPos, setHistPos] = useState({ top: 0, right: 0 });
@@ -39,7 +39,7 @@ function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onCh
     setSkillsOpen(false);
     setDraft("");
     if (taRef.current) taRef.current.style.height = "auto";
-    if (skill && skill.fn === "fillers" && onSkill) onSkill("fillers");
+    if (skill && skill.fn && onSkill) onSkill(skill.fn);
   };
 
   const toggleHist = () => {
@@ -153,6 +153,20 @@ function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onCh
             {m.chips && (
               <div className="chips">
                 {m.chips.map((c, j) => <button className="chip" key={j} onClick={() => onChip(c)}>{c}</button>)}
+              </div>
+            )}
+            {m.clips && (
+              <div className="clip-list">
+                {(((window.DEMO || {}).compositions || {}).clips || []).map((c) => (
+                  <button className="clip-row" key={c.id} onClick={() => onOpenClip && onOpenClip(c)}>
+                    <span className="cr-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>
+                    <span className="cr-meta">
+                      <span className="cr-nm">{c.name}</span>
+                      <span className="cr-sub">Clip · {c.duration}</span>
+                    </span>
+                    <span className="cr-open">Open ›</span>
+                  </button>
+                ))}
               </div>
             )}
             {m.review && (

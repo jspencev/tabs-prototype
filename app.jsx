@@ -84,6 +84,11 @@ function App() {
   const [sharePos, setSharePos] = useState({ top: 0, right: 0 });
   const shareRef = useRef(null);
 
+  // ---- compositions popover (title-bar chevron) ----
+  const [compsOpen, setCompsOpen] = useState(false);
+  const [compsPos, setCompsPos] = useState({ top: 0, left: 0 });
+  const compRef = useRef(null);
+
   // ---- guided demo state ----
   const [view, setView] = useState("editor");      // 'home' | 'editor' — drop into the empty editor
   const [videoAdded, setVideoAdded] = useState(INITIAL.flags.videoAdded);
@@ -420,6 +425,8 @@ function App() {
     if (/edit the script|remove filler|clean up the script|tighten the script/.test(t)) { runDirectScriptEdit(text); return; }
     if (/edit the plan/.test(t)) { guidanceNoPlan(text); return; }
     if (/chapter/.test(t)) { runChapters(text); return; }
+    if (/what clips|which clips|where.+clips|clips.+(exist|project)|find (the |my )?clips|show.+clips/.test(t)) { runListClips(text); return; }
+    if (/create clips|make (some )?clips|social clips|clip the|cut.+clips/.test(t)) { runCreateClips(text); return; }
     if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
     runSend(text, setConvo, setThinking, timer);
   };
@@ -445,6 +452,16 @@ function App() {
 
   // ===== top chrome: publish tab + share popover =====
   const openPublish = () => openSurface(panes[panes.length - 1].id, "publish");
+  const toggleComps = () => {
+    if (compsOpen) { setCompsOpen(false); return; }
+    const r = compRef.current && compRef.current.getBoundingClientRect();
+    if (r) setCompsPos({ top: r.bottom + 8, left: r.left });
+    setCompsOpen(true);
+  };
+  const focusMainComp = () => {
+    setPanes((ps) => ps.map((p) => p.tabIds.includes("video-1") ? { ...p, activeId: "video-1" } : p));
+    setCompsOpen(false);
+  };
   const toggleShare = () => {
     if (shareOpen) { setShareOpen(false); return; }
     const r = shareRef.current && shareRef.current.getBoundingClientRect();
@@ -531,9 +548,47 @@ function App() {
     }, 900);
   };
 
-  // ===== guided demo: skills (Beat 2) =====
+  // ===== clips & compositions =====
+  const openClip = (clip) => {
+    openSurface(panes[panes.length - 1].id, "video", true, clip.id, { compName: clip.name });
+  };
+  const runCreateClips = (text) => {
+    setConvo((c) => [...c, { role: "user", text: text || "Create clips" }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setClipsAdded(true);
+      setScenario("clipsAdded");
+      const D = window.DEMO || {};
+      const folder = (D.compositions && D.compositions.clipsFolder) || "Clips";
+      setConvo((c) => [...c,
+        { role: "ai", text: `Created 4 clips from the strongest moments. They're saved as new compositions in “${folder}” — open any of them as a tab.` },
+        { role: "ai", clips: true },
+      ]);
+    }, 1800);
+  };
+  const runListClips = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      if (clipsAdded) {
+        setConvo((c) => [...c,
+          { role: "ai", text: "This project has the main video plus 4 clips. Click one to open it as a tab:" },
+          { role: "ai", clips: true },
+        ]);
+      } else {
+        setConvo((c) => [...c, { role: "ai", text: "No clips yet — type “/” and pick Create clips, and I'll cut the best moments into shareable clips." }]);
+      }
+    }, 1000);
+  };
+
+  // ===== guided demo: skills =====
   const onSkill = (id) => {
     if (id === "fillers") runFillerBeat();
+    if (id === "clips") runCreateClips();
   };
   const runFillerBeat = () => {
     openSurface(panes[panes.length - 1].id, "script");
@@ -659,6 +714,9 @@ function App() {
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
   const activePane = panes[panes.length - 1];
+  const activeTab = activePane && tabsById[activePane.activeId];
+  const activeCompName = (activeTab && activeTab.compName) || "Main video";
+  const DCOMPS = (window.DEMO && window.DEMO.compositions) || { main: { name: "Main video" }, clips: [] };
   const dockCenterX = (ulOpen ? UL_WIDTH : 0) + (window.innerWidth - (ulOpen ? UL_WIDTH : 0)) / 2;
   const dockBottom = tlOpen ? TL_HEIGHT + 14 : 64; // ride above the timeline when it's open
   // Command bar context: only the visible canvas (with media) drives selection-aware
@@ -679,7 +737,14 @@ function App() {
       <header className="top">
         <button className={"chrome-btn icon" + (ulOpen ? " on" : "")} title="Toggle Underlord"
                 onClick={() => setUlOpen((v) => !v)}><Icons.robot/></button>
-        <div className="title">Launch video — rough cut<span className="crumb">Marketing</span></div>
+        <div className="title">Launch video — rough cut<span className="crumb">Marketing</span>
+          {videoAdded && (
+            <button ref={compRef} className={"comp-btn" + (compsOpen ? " on" : "")}
+                    title="Compositions" onClick={toggleComps}>
+              <span className="cb-sep">/</span> {activeCompName} <Icons.chevD/>
+            </button>
+          )}
+        </div>
         <div className="spacer"></div>
         <div className="status synced"><Icons.checkCircle/> Synced</div>
         <div className="avatars">
@@ -689,6 +754,32 @@ function App() {
         <button ref={shareRef} className={"chrome-btn" + (shareOpen ? " on" : "")} onClick={toggleShare}>Share</button>
         <button className="chrome-btn primary" onClick={openPublish}>Publish</button>
       </header>
+
+      {compsOpen && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:49 }} onClick={() => setCompsOpen(false)}></div>
+          <div className="comps-pop" style={{ top: compsPos.top, left: compsPos.left }}>
+            <div className="cp-label">Compositions</div>
+            <button className={"cp-item" + (activeCompName === "Main video" ? " on" : "")} onClick={focusMainComp}>
+              <span className="cp-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>
+              <span className="cp-meta"><span className="cp-nm">Main video</span><span className="cp-sub">{DCOMPS.main.duration}</span></span>
+            </button>
+            {clipsAdded && (
+              <>
+                <div className="cp-label folder"><Icons.folder/> {DCOMPS.clipsFolder}</div>
+                {DCOMPS.clips.map((c) => (
+                  <button key={c.id} className={"cp-item" + (activeCompName === c.name ? " on" : "")}
+                          onClick={() => { openClip(c); setCompsOpen(false); }}>
+                    <span className="cp-thumb" style={{ backgroundImage: "url(video-thumb.png)" }}></span>
+                    <span className="cp-meta"><span className="cp-nm">{c.name}</span><span className="cp-sub">Clip · {c.duration}</span></span>
+                  </button>
+                ))}
+              </>
+            )}
+            <button className="cp-new"><Icons.plus/> New composition</button>
+          </div>
+        </>
+      )}
 
       {shareOpen && (
         <>
@@ -713,7 +804,7 @@ function App() {
         <Underlord convo={convo} thinking={thinking} onSend={drawerSend} onUploadSend={uploadViaUnderlord}
                    onOpenArtifact={onOpenArtifact} onChip={drawerChip}
                    onNewChat={newChat} history={chatHistory} onSelectHistory={selectChat}
-                   onSkill={onSkill} onPlanGo={onPlanGo} onReview={openReview}
+                   onSkill={onSkill} onPlanGo={onPlanGo} onReview={openReview} onOpenClip={openClip}
                    onClose={() => setUlOpen(false)}/>
 
         <div className="workspace">

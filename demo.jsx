@@ -208,15 +208,15 @@ const DEMO = {
     ],
   },
 
-  // Beat 2: the "/" skills menu. Only `fn:"fillers"` is wired; the rest are decorative.
+  // The "/" skills menu. `fn` entries are wired; the rest are decorative.
   skills: [
     { label: "Remove filler words", fn: "fillers" },
+    { label: "Create clips", fn: "clips" },
     { label: "Studio Sound" },
     { label: "Remove retakes" },
     { label: "Edit for clarity" },
     { label: "Eye Contact" },
     { label: "Center active speaker" },
-    { label: "Create clips" },
     { label: "Add chapters" },
     { label: "Shorten word gaps" },
     { label: "Draft show notes" },

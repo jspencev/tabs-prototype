@@ -93,7 +93,7 @@ function CanvasTextToolbar({ st, set, pos, centered }) {
 // VideoSurface is controlled: selection (sel/setSel) and effects (fx) are owned
 // by App so the bottom command bar and the property panels share one source of
 // truth. Pure attributes (scale, rotation, etc.) stay local for the panels.
-function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onAddMedia }) {
+function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onAddMedia, compName }) {
   const added = !!(demo && demo.videoAdded);
   const [sc, setSc] = useState({
     name: "Scene 1", ratio: "16:9", bg: "#251E21",
@@ -152,6 +152,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
   return (
     <div className="surf-video">
       <div className="canvas-bar">
+        {added && <span className="cpill comp"><Icons.video/> {compName || "Main video"}</span>}
         <button className={"cpill btn" + (sel === "scene" ? " sel" : "")}
                 onClick={(e) => { e.stopPropagation(); if (added) setSel("scene"); }}>
           <Icons.scenes/> {added ? sc.name : "No scenes yet"}
@@ -779,7 +780,7 @@ function Placeholder({ icon, title, body }) {
 // resolve a surface by its kind
 function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel, setSel, fx, onEffect, onStudioSound, textLayerVisible, freeTextVisible, onScriptTool, scriptBusy, mediaSeg, setMediaSeg }) {
   switch (tab.kind) {
-    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={onAddMedia}/>;
+    case "video":  return <VideoSurface demo={demo} sel={sel} setSel={setSel} fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} textLayerVisible={textLayerVisible} freeTextVisible={freeTextVisible} onAddMedia={onAddMedia} compName={tab.compName}/>;
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
