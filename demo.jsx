@@ -163,6 +163,19 @@ const DEMO = {
     },
   },
 
+  // Compositions: the main video plus the clips "Create clips" produces. Clips
+  // open as their own tabs (the tabbed answer to Descript's composition switcher).
+  compositions: {
+    main: { id: "main", name: "Main video", duration: "20:50" },
+    clipsFolder: "Clips from “Neda Navab”",
+    clips: [
+      { id: "clip1", name: "Big is your engine, boutique is your edge", duration: "0:38", startSec: 16 },
+      { id: "clip2", name: "Compass One in the living room",            duration: "0:52", startSec: 80 },
+      { id: "clip3", name: "Clients hire you, not Compass",             duration: "0:41", startSec: 248 },
+      { id: "clip4", name: "Become the boutique expert",                duration: "0:47", startSec: 769 },
+    ],
+  },
+
   // Beat 2: the "/" skills menu. Only `fn:"fillers"` is wired; the rest are decorative.
   skills: [
     { label: "Remove filler words", fn: "fillers" },

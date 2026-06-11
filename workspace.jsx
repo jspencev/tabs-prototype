@@ -1,6 +1,6 @@
 // workspace.jsx — tab strip + panes + split + drag/drop
 const SURFACE_DEFS = {
-  video:    { label: "Video",    icon: "video" },
+  video:    { label: "Canvas",   icon: "video" },
   plan:     { label: "Plan",     icon: "doc" },
   review:   { label: "Review changes", icon: "revert" },
   script:   { label: "Script",   icon: "script" },
@@ -31,6 +31,7 @@ function Tab({ tab, active, paneId, density, drag, on }) {
     >
       <span className="ti"><I/></span>
       <span className="lbl">{tab.label}</span>
+      {tab.compName && <span className="comp" title={"Composition: " + tab.compName}>{tab.compName}</span>}
       {!tab.closeable
         ? <span className="ti lock" title="Always open"><Icons.lock/></span>
         : <button className="x" title="Close tab"

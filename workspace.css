@@ -51,6 +51,10 @@
 .tab .ti { width:15px; height:15px; flex:0 0 15px; display:flex; align-items:center; justify-content:center; opacity:.85; }
 .tab .ti svg { width:15px; height:15px; }
 .tab .lbl { overflow:hidden; text-overflow:ellipsis; }
+.tab .comp { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font:500 10px/1 var(--font-sans); color: var(--fg-3); background: var(--surf-hover);
+  border-radius:999px; padding:3px 7px; flex:0 1 auto; }
+.tab.active .comp { background: var(--blurple-100, #ECECFB); color: var(--blurple-700, #4A4AB8); }
 .tab.anchor .lock { width:12px; height:12px; opacity:.4; }
 .tab .x { width:26px; height:26px; border-radius:var(--radius-xs); border:0; background:transparent; margin-left:1px;
   color: var(--fg-3); display:flex; align-items:center; justify-content:center; }

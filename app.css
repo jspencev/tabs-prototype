@@ -74,6 +74,31 @@ button { font-family: inherit; cursor: pointer; }
 .share-pop .sp-copy:hover { background: var(--surf-hover); }
 .share-pop .sp-copy svg { width:14px; height:14px; }
 
+/* ============ Moderator panel (Ctrl+.) ============ */
+.mod-panel { position:fixed; right:16px; bottom:16px; z-index:200; width:264px;
+  background: var(--surface-elevated); border:1px solid var(--line-med); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop, 0 12px 32px rgba(0,0,0,.18)); padding:10px; display:flex; flex-direction:column; gap:4px; }
+.mod-panel .mod-head { display:flex; align-items:center; gap:6px; padding:2px 2px 6px; }
+.mod-panel .mod-title { font:600 12.5px/1 var(--font-sans); color: var(--fg-1); }
+.mod-panel .mod-kbd { font:500 10.5px/1 var(--font-mono, ui-monospace); color: var(--fg-3);
+  border:1px solid var(--line-soft); border-radius:4px; padding:2px 5px; margin-right:auto; }
+.mod-panel .mod-label { font:600 10px/1 var(--font-sans); letter-spacing:.06em; text-transform:uppercase;
+  color: var(--fg-3); padding:2px 2px 4px; }
+.mod-state { display:flex; align-items:center; gap:9px; text-align:left; padding:7px 8px; border:0;
+  border-radius: var(--radius-md); background:transparent; cursor:pointer; }
+.mod-state:hover { background: var(--surf-hover); }
+.mod-state.on { background: var(--blurple-100, #ECECFB); }
+.mod-state .ms-dot { width:8px; height:8px; flex:0 0 8px; border-radius:999px; border:1.5px solid var(--fg-3); }
+.mod-state.on .ms-dot { background: var(--blurple-500); border-color: var(--blurple-500); }
+.mod-state .ms-meta { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.mod-state .ms-nm { font:600 12px/1.2 var(--font-sans); color: var(--fg-1); }
+.mod-state .ms-sub { font:400 10.5px/1.3 var(--font-sans); color: var(--fg-3); }
+.mod-reset { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:6px;
+  height: var(--ctl-h); border:1px solid var(--line-med); border-radius: var(--radius-md);
+  background:transparent; font:500 12px/1 var(--font-sans); color: var(--fg-2); cursor:pointer; }
+.mod-reset:hover { background: var(--surf-hover); }
+.mod-reset svg { width:14px; height:14px; }
+
 /* ============ Body grid: underlord | workspace ============ */
 .body {
   display: grid;

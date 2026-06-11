@@ -1,16 +1,17 @@
-// app.jsx — root: state, tab system, underlord flow, drawers, tweaks
+// app.jsx — root: state, tab system, underlord flow, drawers, moderator panel
 const { useState, useEffect, useRef, useCallback } = React;
 
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "underlord": true,
-  "timeline": false,
-  "ulWidth": 320,
-  "tlHeight": 300,
-  "density": "comfortable",
-  "accent": "#A3A3EE",
-  "contextBar": true,
-  "scenario": "empty"
-}/*EDITMODE-END*/;
+const UL_WIDTH = 320;
+const TL_HEIGHT = 300;
+const DEFAULT_SCENARIO = "empty";
+
+// Moderator set-up states — the starting points the research tasks assume.
+const SCENARIOS = [
+  { value: "empty",      label: "Empty",       sub: "New project, nothing uploaded" },
+  { value: "postUpload", label: "Post-upload", sub: "Video + transcript, fillers present" },
+  { value: "roughCut",   label: "Rough cut",   sub: "Scenes, music, chapters; fillers removed" },
+  { value: "clipsAdded", label: "Clips added", sub: "Rough cut + clips in the project" },
+];
 
 // Canvas effects live at app level so the command bar (rendered by App) and the
 // Video Properties panel drive one source of truth.
@@ -21,14 +22,15 @@ const FX_DEFAULTS = { studioSound: false, ssBusy: false, ssIntensity: 70,
 let _seq = 100;
 const uid = (p) => `${p}-${_seq++}`;
 
+// Every tab belongs to a composition ("main" unless it shows a clip).
 function makeTab(kind, extra = {}) {
   const d = SURFACE_DEFS[kind] || { label: kind, icon: "doc" };
-  return { id: uid(kind), kind, label: d.label, icon: d.icon, closeable: true, ...extra };
+  return { id: uid(kind), kind, label: d.label, icon: d.icon, closeable: true, comp: "main", ...extra };
 }
 
 // Moderator scenarios: the prototype can be reset into any of the set-up states
 // the research tasks assume. A scenario derives the demo flags, the seeded
-// Underlord conversation, and a clean Video + Script layout.
+// Underlord conversation, and a clean Canvas + Script layout.
 function scenarioBaseline(scenario) {
   const tabsById = { "video-1": makeTab("video", { id: "video-1", closeable: false }),
                      "script-1": makeTab("script", { id: "script-1" }) };
@@ -37,15 +39,22 @@ function scenarioBaseline(scenario) {
   // project. It never fabricates chat — Underlord stays empty until the user
   // talks to it (or uploads through it).
   const flags = (f) => ({ videoAdded: false, fillersRemoved: false, fillerStriking: false,
-                          chaptersAdded: false, rearranged: false, ...f });
+                          chaptersAdded: false, rearranged: false, scenesAdded: false, clipsAdded: false, ...f });
   if (scenario === "postUpload") return { tabsById, panes, flags: flags({ videoAdded: true }), convo: [] };
-  if (scenario === "roughCut")   return { tabsById, panes, flags: flags({ videoAdded: true, chaptersAdded: true }), convo: [] };
+  if (scenario === "roughCut")   return { tabsById, panes,
+    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true }), convo: [] };
+  if (scenario === "clipsAdded") return { tabsById, panes,
+    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true, clipsAdded: true }), convo: [] };
   return { tabsById, panes, flags: flags(), convo: [] };
 }
-const INITIAL = scenarioBaseline(TWEAK_DEFAULTS.scenario);
+const INITIAL = scenarioBaseline(DEFAULT_SCENARIO);
 
 function App() {
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  // ---- shell / drawers ----
+  const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
+  const [ulOpen, setUlOpen] = useState(true);
+  const [tlOpen, setTlOpen] = useState(false);
+  const [modOpen, setModOpen] = useState(false); // moderator panel (Ctrl+.)
 
   // ---- tab system ----
   const [tabsById, setTabsById] = useState(() => INITIAL.tabsById);
@@ -82,16 +91,17 @@ function App() {
   const [fillerStriking, setFillerStriking] = useState(INITIAL.flags.fillerStriking);
   const [chaptersAdded, setChaptersAdded] = useState(INITIAL.flags.chaptersAdded);
   const [rearranged, setRearranged] = useState(INITIAL.flags.rearranged);
+  const [scenesAdded, setScenesAdded] = useState(INITIAL.flags.scenesAdded);
+  const [clipsAdded, setClipsAdded] = useState(INITIAL.flags.clipsAdded);
   const [planPhase, setPlanPhase] = useState(null); // null | 'proposed' | 'revised' | 'done'
   const [selection, setSelection] = useState(null); // null | 'video' | 'scene' | 'text' — canvas selection
   const [fx, setFx] = useState(FX_DEFAULTS);        // canvas effects (lifted from VideoSurface)
   const [ssPop, setSsPop] = useState(null);         // Studio Sound intensity popover: { rect } | null
-  const [textLayerVisible, setTextLayerVisible] = useState(true);
+  // The speaker lower-third starts hidden everywhere: Task 6 is the participant
+  // *adding* it (Speaker layout / Add element → Text).
+  const [textLayerVisible, setTextLayerVisible] = useState(false);
   const fxTimers = useRef({});
-  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged };
-
-  const ulOpen = t.underlord;
-  const tlOpen = t.timeline;
+  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded };
 
   // ===== tab operations =====
   const activate = (paneId, tabId) =>
@@ -118,14 +128,14 @@ function App() {
 
   const findPaneOf = (ps, tabId) => ps.find((p) => p.tabIds.includes(tabId));
 
-  const openSurface = (paneId, kind, focus = true) => {
-    // reuse existing tab of this kind
-    const existing = Object.values(tabsById).find((x) => x.kind === kind);
+  const openSurface = (paneId, kind, focus = true, comp = "main", extra = {}) => {
+    // reuse the existing tab of this kind *within the same composition*
+    const existing = Object.values(tabsById).find((x) => x.kind === kind && (x.comp || "main") === comp);
     if (existing) {
       setPanes((ps) => ps.map((p) => p.tabIds.includes(existing.id) ? { ...p, activeId: existing.id } : p));
       return existing.id;
     }
-    const nt = makeTab(kind);
+    const nt = makeTab(kind, { comp, ...extra });
     setTabsById((m) => ({ ...m, [nt.id]: nt }));
     setPanes((ps) => ps.map((p) => p.id === paneId
       ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: focus ? nt.id : p.activeId } : p));
@@ -237,7 +247,7 @@ function App() {
 
   const runGo = (setList) => {
     setGoPulse(false);
-    if (!t.timeline) setTweak("timeline", true);
+    setTlOpen(true);
     setList((c) => [...c, { role: "ai", text: "Running the plan now — I'll pause between steps so you can review each change on the timeline." }]);
   };
 
@@ -344,17 +354,18 @@ function App() {
 
   // ===== moderator: reset the editor into a set-up state =====
   const applyScenario = (s) => {
-    setTweak("scenario", s);
+    setScenario(s);
     const b = scenarioBaseline(s);
     planId.current = null; reviewId.current = null;
     clearTimeout(timer.current); clearTimeout(mistTimer.current);
     setTabsById(b.tabsById); setPanes(b.panes);
     setVideoAdded(b.flags.videoAdded); setFillersRemoved(b.flags.fillersRemoved);
     setFillerStriking(b.flags.fillerStriking); setChaptersAdded(b.flags.chaptersAdded);
-    setRearranged(b.flags.rearranged);
+    setRearranged(b.flags.rearranged); setScenesAdded(b.flags.scenesAdded); setClipsAdded(b.flags.clipsAdded);
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
-    setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(true);
+    setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false);
+    setTlOpen(false);
     setView("editor");
   };
 
@@ -395,9 +406,8 @@ function App() {
   // Direct manipulation, NOT a chat action — it must not touch Underlord. Only
   // uploading *through* Underlord (its attachment) would make Underlord respond.
   const addMedia = () => {
-    setTweak("scenario", "postUpload");
+    setScenario("postUpload");
     setVideoAdded(true);
-    setTextLayerVisible(true);
   };
 
   // ===== upload *through* Underlord (paperclip attachment + send) =====
@@ -407,7 +417,7 @@ function App() {
     const msg = { role: "user", file };
     if (text) msg.text = text;
     setConvo((c) => [...c, msg]);
-    setTweak("scenario", "postUpload");
+    setScenario("postUpload");
     setVideoAdded(true);
     setThinking(true);
     clearTimeout(timer.current);
@@ -420,7 +430,7 @@ function App() {
   // ===== guided demo: entry from Chatty Home =====
   const enterEditor = ({ prompt, file }) => {
     setView("editor");
-    setTweak("underlord", true);
+    setUlOpen(true);
     const D = window.DEMO || {};
     const userMsg = { role: "user", file: { name: (file && file.name) || D.fileName, meta: D.duration } };
     if (prompt) userMsg.text = prompt;
@@ -491,7 +501,7 @@ function App() {
   const dockMist = () => {
     setConvo(mistConvo);
     setThinking(false);
-    setTweak("underlord", true);
+    setUlOpen(true);
     setMistOpen(false);
     setMistDocked(false);
     setMistConvo([]);
@@ -540,10 +550,15 @@ function App() {
     return () => window.removeEventListener("keydown", h);
   }, [mistOpen, view]);
 
-  // accent override
+  // Ctrl+. (or Cmd+.) toggles the hidden moderator panel.
   useEffect(() => {
-    document.documentElement.style.setProperty("--blurple-400", t.accent);
-  }, [t.accent]);
+    const h = (e) => {
+      if (e.key === "." && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setModOpen((o) => !o); }
+      else if (e.key === "Escape") setModOpen(false);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   const on = {
     activate, close, openSurface, split: splitFromActive, splitDrop, moveTab,
@@ -556,8 +571,8 @@ function App() {
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
   const activePane = panes[panes.length - 1];
-  const dockCenterX = (ulOpen ? t.ulWidth : 0) + (window.innerWidth - (ulOpen ? t.ulWidth : 0)) / 2;
-  const dockBottom = tlOpen ? t.tlHeight + 14 : 64; // ride above the timeline when it's open
+  const dockCenterX = (ulOpen ? UL_WIDTH : 0) + (window.innerWidth - (ulOpen ? UL_WIDTH : 0)) / 2;
+  const dockBottom = tlOpen ? TL_HEIGHT + 14 : 64; // ride above the timeline when it's open
   // Command bar context: only the visible canvas (with media) drives selection-aware
   // actions. With no media or off-canvas, the bar shows just Ask Underlord ("none").
   const canvasVisible = panes.some((p) => { const tb = tabsById[p.activeId]; return tb && tb.kind === "video"; });
@@ -566,10 +581,10 @@ function App() {
   if (view === "home") return <Home onStart={enterEditor}/>;
 
   return (
-    <div className={"app density-" + t.density}>
+    <div className="app density-comfortable">
       <header className="top">
         <button className={"chrome-btn icon" + (ulOpen ? " on" : "")} title="Toggle Underlord"
-                onClick={() => setTweak("underlord", !ulOpen)}><Icons.robot/></button>
+                onClick={() => setUlOpen((v) => !v)}><Icons.robot/></button>
         <div className="title">Launch video — rough cut<span className="crumb">Marketing</span></div>
         <div className="spacer"></div>
         <div className="status synced"><Icons.checkCircle/> Synced</div>
@@ -600,20 +615,20 @@ function App() {
         </>
       )}
 
-      <div className="body" style={{ gridTemplateColumns: `${ulOpen ? t.ulWidth : 0}px 1fr` }}>
+      <div className="body" style={{ gridTemplateColumns: `${ulOpen ? UL_WIDTH : 0}px 1fr` }}>
         <Underlord convo={convo} thinking={thinking} onSend={drawerSend} onUploadSend={uploadViaUnderlord}
                    onOpenArtifact={onOpenArtifact} onChip={drawerChip}
                    onNewChat={newChat} history={chatHistory} onSelectHistory={selectChat}
                    onSkill={onSkill} onPlanGo={onPlanGo} onReview={openReview}
-                   onClose={() => setTweak("underlord", false)}/>
+                   onClose={() => setUlOpen(false)}/>
 
         <div className="workspace">
           <div className="ws-main">
-            <Workspace panes={panes} tabsById={tabsById} density={t.density} on={on} demo={demo}/>
-            {t.contextBar && !mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
-            {!tlOpen && <TimelinePull onOpen={() => setTweak("timeline", true)}/>}
+            <Workspace panes={panes} tabsById={tabsById} density="comfortable" on={on} demo={demo}/>
+            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
+            {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
-          <Timeline open={tlOpen} height={t.tlHeight} onClose={() => setTweak("timeline", false)}/>
+          <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} onClose={() => setTlOpen(false)}/>
         </div>
       </div>
 
@@ -648,7 +663,31 @@ function App() {
                        onClose={closeMist} onDock={dockMist}/>
       )}
 
-      <Tweaks t={t} setTweak={setTweak} applyScenario={applyScenario}/>
+      {modOpen && <ModeratorPanel scenario={scenario} onScenario={applyScenario}
+                                  onReset={() => applyScenario(scenario)} onClose={() => setModOpen(false)}/>}
+    </div>
+  );
+}
+
+// Hidden moderator panel (Ctrl+. / Cmd+.) — snaps the editor to a research
+// set-up state between tasks. Participants never see it.
+function ModeratorPanel({ scenario, onScenario, onReset, onClose }) {
+  return (
+    <div className="mod-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="mod-head">
+        <span className="mod-title">Moderator</span>
+        <span className="mod-kbd">⌃.</span>
+        <button className="icon-ghost" title="Close" onClick={onClose}><Icons.x/></button>
+      </div>
+      <div className="mod-label">Set-up state</div>
+      {SCENARIOS.map((s) => (
+        <button key={s.value} className={"mod-state" + (scenario === s.value ? " on" : "")}
+                onClick={() => onScenario(s.value)}>
+          <span className="ms-dot"></span>
+          <span className="ms-meta"><span className="ms-nm">{s.label}</span><span className="ms-sub">{s.sub}</span></span>
+        </button>
+      ))}
+      <button className="mod-reset" onClick={onReset}><Icons.revert/> Reset current state</button>
     </div>
   );
 }
@@ -763,28 +802,6 @@ function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onUnde
         <CmdRepMenu kind={menu.kind} left={menu.left} bottom={menu.bottom}/>
       )}
     </>
-  );
-}
-
-function Tweaks({ t, setTweak, applyScenario }) {
-  return (
-    <TweaksPanel>
-      <TweakSection label="Scenario"/>
-      <TweakRadio label="Set-up state" value={t.scenario}
-        options={[{value:"empty",label:"Empty"},{value:"postUpload",label:"Uploaded"},{value:"roughCut",label:"Rough cut"}]}
-        onChange={applyScenario}/>
-      <TweakSection label="Layout"/>
-      <TweakToggle label="Underlord drawer" value={t.underlord} onChange={(v) => setTweak("underlord", v)}/>
-      <TweakToggle label="Timeline drawer" value={t.timeline} onChange={(v) => setTweak("timeline", v)}/>
-      <TweakSlider label="Underlord width" value={t.ulWidth} min={260} max={420} step={4} unit="px" onChange={(v) => setTweak("ulWidth", v)}/>
-      <TweakSlider label="Timeline height" value={t.tlHeight} min={160} max={320} step={4} unit="px" onChange={(v) => setTweak("tlHeight", v)}/>
-      <TweakSection label="Style"/>
-      <TweakRadio label="Density" value={t.density} options={["compact","comfortable"]} onChange={(v) => setTweak("density", v)}/>
-      <TweakColor label="Underlord accent" value={t.accent}
-        options={["#A3A3EE","#7A7ADC","#8841C6","#B84676"]} onChange={(v) => setTweak("accent", v)}/>
-      <TweakSection label="Future direction"/>
-      <TweakToggle label="Contextual toolbar" value={t.contextBar} onChange={(v) => setTweak("contextBar", v)}/>
-    </TweaksPanel>
   );
 }
 
