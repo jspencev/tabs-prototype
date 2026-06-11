@@ -35,6 +35,12 @@ function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onCh
     if (r) setSkillsPos({ left: r.left, bottom: window.innerHeight - r.top + 6 });
     setSkillsOpen(true);
   };
+  // Lightbulb button: toggle the full skills list (unfiltered).
+  const toggleSkills = () => {
+    if (skillsOpen) { setSkillsOpen(false); return; }
+    setSkillFilter("");
+    openSkills();
+  };
   const selectSkill = (skill) => {
     setSkillsOpen(false);
     setDraft("");
@@ -229,6 +235,7 @@ function Underlord({ convo, thinking, onSend, onUploadSend, onOpenArtifact, onCh
                     onChange={grow} onKeyDown={onKey}/>
           <div className="composer-bar">
             <button ref={clipRef} className={"cbtn" + (attachOpen ? " on" : "")} title="Upload video, audio, image, or PDF files" onClick={toggleAttach}><Icons.paperclip/></button>
+            <button className={"cbtn" + (skillsOpen ? " on" : "")} title="Skills" onClick={toggleSkills}><Icons.bulb/></button>
             <button className="cbtn" title="Add context"><Icons.at/></button>
             <button className="cmodel" title="Model">Auto <Icons.chevD/></button>
             <span className="sp"></span>

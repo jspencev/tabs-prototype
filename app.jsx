@@ -111,6 +111,7 @@ function App() {
   // *adding* it (Speaker layout / Add element → Text).
   const [textLayerVisible, setTextLayerVisible] = useState(false);
   const [freeTextVisible, setFreeTextVisible] = useState(false); // "Add element → Text" layer
+  const [sceneLayout, setSceneLayout] = useState("Default Camera"); // active scene layout (picker)
   const fxTimers = useRef({});
   // Script tab AI actions (header pills) + text selection inside the transcript.
   const [scriptBusy, setScriptBusy] = useState(null); // null | 'fillers' | 'clarity'
@@ -439,6 +440,7 @@ function App() {
     if (/what clips|which clips|where.+clips|clips.+(exist|project)|find (the |my )?clips|show.+clips/.test(t)) { runListClips(text); return; }
     if (/create clips|make (some )?clips|social clips|clip the|cut.+clips/.test(t)) { runCreateClips(text); return; }
     if (/add (an |the )?intro|intro (slide|title)/.test(t)) { runAddIntro(text); return; }
+    if (/lower.?third|speaker(?:'s)? name|name and title|name & title|speaker layout/.test(t)) { runAddLowerThird(text); return; }
     if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
     runGenericAck(text, setConvo, setThinking, timer);
   };
@@ -457,6 +459,7 @@ function App() {
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
     setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
+    setSceneLayout("Default Camera");
     setMediaSeg("project"); setCustomComps([]); setCompsOpen(false);
     setIntroAdded(false); setIntroBg(null); setPlayZone("video");
     setTlOpen(false);
@@ -511,10 +514,19 @@ function App() {
     setSelection(null);
   };
 
+  // Apply a scene layout from the picker (Notion Task 6). "Speaker Name" is the
+  // lower-third; selecting it shows the name/title overlay. Other layouts just
+  // register as the active layout (believable-but-canned, like the rest).
+  const applyLayout = (name) => {
+    setSceneLayout(name);
+    if (name === "Speaker Name") { setTextLayerVisible(true); setSelection("text"); }
+    else { setTextLayerVisible(false); if (selection === "text") setSelection("scene"); }
+  };
+
   // Command-bar representative menus: the few items that must visibly work
   // (Notion Task 6) act; the rest just close the menu.
   const onRepAction = (kind, item) => {
-    if (kind === "layout" && item === "Speaker") { setTextLayerVisible(true); setSelection("text"); return; }
+    if (kind === "layout") { applyLayout(item); return; }
     if (kind === "add" && (item === "Speaker name" || item === "Subtitle")) { setTextLayerVisible(true); setSelection("text"); return; }
     if (kind === "add" && (item === "Text" || item === "Title")) { setFreeTextVisible(true); setSelection("text2"); return; }
   };
@@ -635,6 +647,19 @@ function App() {
       setConvo((c) => [...c, { role: "ai",
         text: "Added an intro slide before your video — you can see it at the start of the timeline. Edit the title right on the canvas, or grab a background clip from Stock with the + button." }]);
     }, 1500);
+  };
+
+  const runAddLowerThird = (text) => {
+    setConvo((c) => [...c, { role: "user", text: text || "Add lower thirds" }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      openSurface(panes[panes.length - 1].id, "video", true, "main");
+      applyLayout("Speaker Name");
+      setConvo((c) => [...c, { role: "ai",
+        text: "Applied the Speaker Name layout — the speaker's name and title now sit in the lower-left. Click the text on the canvas to edit it, or drag to reposition." }]);
+    }, 1300);
   };
 
   // Stock "+" (Add as new layer): with an intro, the clip drops in behind the
@@ -903,7 +928,7 @@ function App() {
         <div className="workspace">
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density="comfortable" on={on} demo={demo}/>
-            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
+            {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} currentLayout={sceneLayout} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
             {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
           </div>
           <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} appSel={selection} setAppSel={setSelection} playZone={playZone} onPlayZone={setPlayZone} onClose={() => setTlOpen(false)}/>
@@ -1003,7 +1028,6 @@ const CMD_SETS = {
 // Representative action menus (these "make sense" but don't deeply function —
 // full behavior lands in later stages). Grounded in Descript's real labels.
 const REP_MENUS = {
-  layout:   { label: "Change layout", items: ["Speaker", "Camera", "Screen", "Title", "Big Fact", "Quote"] },
   add:      { label: "Add element", items: ["Text", "Subtitle", "Title", "Shape", "Media", "Speaker name"] },
   captions: { label: "Captions", items: ["This scene", "All scenes"] },
   crop:     { label: "Crop", items: ["Original", "Square", "Portrait", "Landscape", "Reset"] },
@@ -1011,6 +1035,68 @@ const REP_MENUS = {
   textfx:   { label: "Effects", items: ["Shadow", "Outline", "Background", "Glow"] },
   animate:  { label: "Animation", items: ["Fade in", "Slide in", "Pop", "Typewriter"] },
 };
+
+// Descript's "Change layout" pack: layout cards grouped by category (Basic /
+// Title / Overlay / Presentation / Social). Names + type taxonomy mirror the
+// real default pack (descript-model LayoutType + descript_default.json). The
+// "Speaker Name" card is the lower-third (Notion Task 6); applying it shows the
+// name/title overlay. Others register as the active layout for the demo.
+const LAYOUT_PACK = [
+  ["Basic", [["Default Camera", "camera"], ["Zoom", "zoom"], ["Screen Recording", "screen"], ["B-roll", "media"], ["2 Camera", "multicam"]]],
+  ["Title", [["Default Intro", "intro"], ["Chapter Title", "chapter"], ["Outro CTA", "outro"]]],
+  ["Overlay", [["Speaker Name", "speaker"], ["Captions", "captions"], ["Text Overlay", "text"]]],
+  ["Presentation", [["List", "list"], ["Paragraph", "paragraph"], ["Quote", "quote"], ["Big Fact", "big-fact"]]],
+  ["Social", [["Audiogram", "audiogram"], ["Social Clip - Portrait", "captions"]]],
+];
+
+// Schematic preview per layout type (the real picker uses rendered thumbnails).
+function LayoutThumb({ type }) {
+  const el = (cls, key) => <span className={"lp-el " + cls} key={key}></span>;
+  const parts = {
+    camera: [el("head")],
+    zoom: [el("head zoom")],
+    screen: [el("screen"), el("cam")],
+    media: [el("media")],
+    multicam: [el("half l"), el("half r")],
+    speaker: [el("head"), el("grad"), el("nm"), el("ttl")],
+    intro: [el("title")],
+    chapter: [el("title sm"), el("rule")],
+    outro: [el("title sm"), el("dots")],
+    captions: [el("cap")],
+    text: [el("line w1"), el("line w2")],
+    list: [el("bullet b1"), el("bullet b2"), el("bullet b3")],
+    paragraph: [el("line w1"), el("line w2"), el("line w3")],
+    quote: [el("quote"), el("line w2")],
+    "big-fact": [el("fact")],
+    audiogram: [el("wave")],
+  };
+  return <span className={"lp-thumb t-" + type}>{parts[type] || null}</span>;
+}
+
+function LayoutPicker({ current, left, bottom, onPick }) {
+  const clampedLeft = Math.min(left, window.innerWidth - 296);
+  return (
+    <div className="menu layout-picker" style={{ position:"fixed", left: clampedLeft, bottom }} onClick={(e) => e.stopPropagation()}>
+      <div className="lp-head">Change layout</div>
+      <div className="lp-scroll">
+        {LAYOUT_PACK.map(([cat, items]) => (
+          <div className="lp-cat" key={cat}>
+            <div className="lp-cat-name">{cat}</div>
+            <div className="lp-grid">
+              {items.map(([name, type]) => (
+                <button key={name} className={"lp-card" + (current === name ? " on" : "")}
+                        title={cat + " › " + name} onClick={() => onPick(name)}>
+                  <LayoutThumb type={type}/>
+                  <span className="lp-name">{name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CmdEffectsMenu({ fx, onEffect, onStudioSound, onClose, left, bottom }) {
   const rows = [
@@ -1052,7 +1138,7 @@ function CmdRepMenu({ kind, left, bottom, onItem }) {
   );
 }
 
-function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgnore, onDeleteSel, onRep, onUnderlord, dockCenterX, dockBottom }) {
+function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgnore, onDeleteSel, onRep, currentLayout, onUnderlord, dockCenterX, dockBottom }) {
   const [menu, setMenu] = useState(null); // { kind, left, bottom }
   const set = CMD_SETS[context] || CMD_SETS.none;
   // Selection changes can strand an open menu — close it when context changes.
@@ -1080,7 +1166,11 @@ function CommandBar({ context, fx, onEffect, onStudioSound, onDeleteText, onIgno
       {menu && menu.kind === "effects" && (
         <CmdEffectsMenu fx={fx} onEffect={onEffect} onStudioSound={onStudioSound} onClose={() => setMenu(null)} left={menu.left} bottom={menu.bottom}/>
       )}
-      {menu && menu.kind !== "effects" && (
+      {menu && menu.kind === "layout" && (
+        <LayoutPicker current={currentLayout} left={menu.left} bottom={menu.bottom}
+                      onPick={(name) => { if (onRep) onRep("layout", name); setMenu(null); }}/>
+      )}
+      {menu && menu.kind !== "effects" && menu.kind !== "layout" && (
         <CmdRepMenu kind={menu.kind} left={menu.left} bottom={menu.bottom}
                     onItem={(it) => { if (onRep) onRep(menu.kind, it); setMenu(null); }}/>
       )}
