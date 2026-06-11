@@ -786,7 +786,7 @@ function SurfaceContent({ tab, planUpdated, onGo, goPulse, demo, onAddMedia, sel
     case "plan":   return <PlanDoc updated={planUpdated} onGo={onGo} goPulse={goPulse}/>;
     case "review": return <ReviewSurface/>;
     case "publish":return <PublishSurface/>;
-    case "script": return <ScriptSurface demo={demo} onAddMedia={onAddMedia} onScriptTool={onScriptTool} scriptBusy={scriptBusy} compName={tab.compName}/>;
+    case "script": return <ScriptSurface demo={tab.blank ? { ...demo, videoAdded: false } : demo} onAddMedia={tab.blank ? () => onFillBlank(tab.id) : onAddMedia} onScriptTool={onScriptTool} scriptBusy={scriptBusy} compName={tab.compName}/>;
     case "media":  return <MediaSurface demo={demo} onAddMedia={onAddMedia} seg={mediaSeg} setSeg={setMediaSeg}/>;
     case "stock":  return <Placeholder icon="stock" title="Stock" body="Search stock video, photos and music — opens as its own closeable tab."/>;
     case "effects":return <Placeholder icon="effects" title="Effects" body="Transitions, filters and layer effects for the selected clip."/>;

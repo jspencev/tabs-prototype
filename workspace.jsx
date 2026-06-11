@@ -14,7 +14,7 @@ const SURFACE_DEFS = {
 };
 window.SURFACE_DEFS = SURFACE_DEFS;
 
-const ADD_MENU = ["video", "script", "media", "publish", "settings"];
+const ADD_MENU = ["media", "publish", "settings"]; // project-level surfaces (comps get their own section)
 
 function Tab({ tab, active, paneId, density, drag, on }) {
   const I = Icons[tab.icon] || Icons.doc;
@@ -47,11 +47,21 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
   const openKinds = new Set(Object.values(tabsById).map((tb) => tb.kind));
   const addRef = useRef(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [naming, setNaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const toggleMenu = () => {
+    setNaming(false); setNameDraft("");
     if (menu) { setMenu(false); return; }
     const r = addRef.current && addRef.current.getBoundingClientRect();
     if (r) setMenuPos({ top: r.bottom + 6, left: r.left });
     setMenu(true);
+  };
+  // Is this composition's Canvas/Script already open as a tab?
+  const compOpen = (compId, kind) =>
+    Object.values(tabsById).some((tb) => tb.kind === kind && (tb.comp || "main") === compId);
+  const createComp = () => {
+    on.newComposition(pane.id, nameDraft);
+    setNaming(false); setNameDraft(""); setMenu(false);
   };
 
   // A drag can split this pane when it's the only pane and has a tab to keep behind.
@@ -72,8 +82,27 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
             {menu && (
               <>
                 <div style={{position:"fixed",inset:0,zIndex:39}} onClick={() => setMenu(false)}></div>
-                <div className="menu" style={{ position:"fixed", top:menuPos.top, left:menuPos.left }}>
-                  <div className="mlabel">Open as tab</div>
+                <div className="menu add-menu" style={{ position:"fixed", top:menuPos.top, left:menuPos.left }}>
+                  <div className="mlabel">Compositions</div>
+                  {(on.comps || []).map((c) => {
+                    const canvasOpen = compOpen(c.id, "video");
+                    const scriptOpen = compOpen(c.id, "script");
+                    return (
+                      <div className="comp-row" key={c.id} title={c.name}>
+                        <Icons.scenes/>
+                        <span className="nm">{c.name}</span>
+                        <button className={"mini" + (canvasOpen ? " open" : "")} disabled={canvasOpen}
+                                onClick={() => { on.openComp(pane.id, c, "video"); setMenu(false); }}>
+                          <Icons.video/> Canvas
+                        </button>
+                        <button className={"mini" + (scriptOpen ? " open" : "")} disabled={scriptOpen}
+                                onClick={() => { on.openComp(pane.id, c, "script"); setMenu(false); }}>
+                          <Icons.script/> Script
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <div className="mlabel">App</div>
                   {ADD_MENU.map((k) => {
                     const I = Icons[SURFACE_DEFS[k].icon];
                     const isOpen = openKinds.has(k);
@@ -85,25 +114,22 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
                       </div>
                     );
                   })}
-                  {demo && demo.clipsAdded && (
-                    <>
-                      <div className="mlabel">Clips</div>
-                      {(((window.DEMO || {}).compositions || {}).clips || []).map((c) => {
-                        const isOpen = Object.values(tabsById).some((tb) => (tb.comp || "main") === c.id);
-                        return (
-                          <div className={"mi" + (isOpen ? " disabled" : "")} key={c.id}
-                               onClick={isOpen ? undefined : () => { on.openClip(c); setMenu(false); }}>
-                            <Icons.video/> <span className="clip-label">{c.name}</span>
-                            {isOpen && <span className="k">Open</span>}
-                          </div>
-                        );
-                      })}
-                    </>
-                  )}
                   <div className="mdiv"></div>
-                  <div className="mi" onClick={() => { on.newComposition(pane.id); setMenu(false); }}>
-                    <Icons.plus/> New composition
-                  </div>
+                  {naming ? (
+                    <div className="name-row">
+                      <input autoFocus placeholder="Composition name" value={nameDraft}
+                             onChange={(e) => setNameDraft(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === "Enter") createComp();
+                               if (e.key === "Escape") { setNaming(false); setNameDraft(""); }
+                             }}/>
+                      <button onClick={createComp}>Create</button>
+                    </div>
+                  ) : (
+                    <div className="mi" onClick={() => setNaming(true)}>
+                      <Icons.plus/> New composition
+                    </div>
+                  )}
                 </div>
               </>
             )}

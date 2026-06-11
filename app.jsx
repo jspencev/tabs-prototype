@@ -87,6 +87,8 @@ function App() {
   // ---- compositions popover (title-bar chevron) ----
   const [compsOpen, setCompsOpen] = useState(false);
   const [compsPos, setCompsPos] = useState({ top: 0, left: 0 });
+  const [compsNaming, setCompsNaming] = useState(false);
+  const [compsName, setCompsName] = useState("");
   const compRef = useRef(null);
 
   // ---- guided demo state ----
@@ -435,7 +437,7 @@ function App() {
     setThinking(false); setConvo(b.convo); setPlanPhase(null); setGoPulse(false);
     setMistOpen(false); setMistDocked(false); setMistConvo([]); setMistThinking(false);
     setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
-    setMediaSeg("project");
+    setMediaSeg("project"); setCustomComps([]); setCompsOpen(false);
     setTlOpen(false);
     setView("editor");
   };
@@ -443,6 +445,7 @@ function App() {
   // ===== top chrome: publish tab + share popover =====
   const openPublish = () => openSurface(panes[panes.length - 1].id, "publish");
   const toggleComps = () => {
+    setCompsNaming(false); setCompsName("");
     if (compsOpen) { setCompsOpen(false); return; }
     const r = compRef.current && compRef.current.getBoundingClientRect();
     if (r) setCompsPos({ top: r.bottom + 8, left: r.left });
@@ -542,17 +545,28 @@ function App() {
   const openClip = (clip) => {
     openSurface(panes[panes.length - 1].id, "video", true, clip.id, { compName: clip.name });
   };
-  // A new composition opens as its own blank Canvas tab (Descript names them "Untitled").
-  const newComposition = (paneId) => {
-    const n = Object.values(tabsById).filter((tb) => tb.compName && tb.compName.startsWith("Untitled")).length;
-    const name = n === 0 ? "Untitled" : "Untitled " + (n + 1);
-    const nt = makeTab("video", { comp: uid("comp"), compName: name, blank: true });
+  // User-created compositions live in a registry so the [+] menu and the
+  // compositions popover can list them even when their tabs are closed.
+  const [customComps, setCustomComps] = useState([]); // { id, name, blank }
+  const newComposition = (paneId, name) => {
+    const id = uid("comp");
+    const nm = (name || "").trim() || "Untitled";
+    setCustomComps((cs) => [...cs, { id, name: nm, blank: true }]);
+    const nt = makeTab("video", { comp: id, compName: nm, blank: true });
     setTabsById((m) => ({ ...m, [nt.id]: nt }));
     setPanes((ps) => ps.map((p) => p.id === paneId
       ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p));
   };
-  const fillBlankComp = (tabId) =>
+  const fillBlankComp = (tabId) => {
+    const tb = tabsById[tabId];
     setTabsById((m) => (m[tabId] ? { ...m, [tabId]: { ...m[tabId], blank: false } } : m));
+    if (tb) setCustomComps((cs) => cs.map((c) => c.id === tb.comp ? { ...c, blank: false } : c));
+  };
+  // Open a surface (Canvas/Script) scoped to a composition.
+  const openComp = (paneId, comp, kind) => {
+    if (comp.id === "main") { openSurface(paneId, kind, true, "main"); return; }
+    openSurface(paneId, kind, true, comp.id, { compName: comp.name, blank: !!comp.blank });
+  };
   const runCreateClips = (text) => {
     setConvo((c) => [...c, { role: "user", text: text || "Create clips" }]);
     setThinking(true);
@@ -711,7 +725,12 @@ function App() {
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
     mediaSeg, setMediaSeg, openClip,
-    newComposition, onFillBlank: fillBlankComp,
+    newComposition, onFillBlank: fillBlankComp, openComp,
+    comps: [
+      { id: "main", name: "Main video" },
+      ...(clipsAdded ? (((window.DEMO || {}).compositions || {}).clips || []).map((c) => ({ id: c.id, name: c.name })) : []),
+      ...customComps,
+    ],
   };
   // moveTab signature from strip drop: (tabId, paneId, beforeTabId)
 
@@ -778,9 +797,28 @@ function App() {
                 ))}
               </>
             )}
-            <button className="cp-new" onClick={() => { newComposition(panes[panes.length - 1].id); setCompsOpen(false); }}>
-              <Icons.plus/> New composition
-            </button>
+            {customComps.map((c) => (
+              <button key={c.id} className={"cp-item" + (activeCompName === c.name ? " on" : "")}
+                      onClick={() => { openComp(panes[panes.length - 1].id, c, "video"); setCompsOpen(false); }}>
+                <span className="cp-thumb" style={{ backgroundImage: c.blank ? "none" : "url(video-thumb.png)" }}></span>
+                <span className="cp-meta"><span className="cp-nm">{c.name}</span><span className="cp-sub">{c.blank ? "Empty" : "Composition"}</span></span>
+              </button>
+            ))}
+            {compsNaming ? (
+              <div className="cp-name">
+                <input autoFocus placeholder="Composition name" value={compsName}
+                       onChange={(e) => setCompsName(e.target.value)}
+                       onKeyDown={(e) => {
+                         if (e.key === "Enter") { newComposition(panes[panes.length - 1].id, compsName); setCompsNaming(false); setCompsName(""); setCompsOpen(false); }
+                         if (e.key === "Escape") { setCompsNaming(false); setCompsName(""); }
+                       }}/>
+                <button onClick={() => { newComposition(panes[panes.length - 1].id, compsName); setCompsNaming(false); setCompsName(""); setCompsOpen(false); }}>Create</button>
+              </div>
+            ) : (
+              <button className="cp-new" onClick={() => setCompsNaming(true)}>
+                <Icons.plus/> New composition
+              </button>
+            )}
           </div>
         </>
       )}

@@ -53,6 +53,27 @@
 .tab .lbl { overflow:hidden; text-overflow:ellipsis; }
 .menu .mi .clip-label { max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .menu .mdiv { height:1px; background: var(--line-soft); margin:4px 2px; }
+
+/* [+] add-menu: per-composition rows with Canvas/Script actions */
+.add-menu { min-width:286px; }
+.add-menu .comp-row { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:7px; }
+.add-menu .comp-row:hover { background: var(--surf-hover); }
+.add-menu .comp-row > svg { width:14px; height:14px; flex:0 0 14px; color: var(--fg-3); }
+.add-menu .comp-row .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font:500 12px/1.3 var(--font-sans); color: var(--fg-1); }
+.add-menu .comp-row .mini { height:22px; padding:0 7px; border:1px solid var(--line-med); border-radius:6px;
+  background: var(--surface-default); font:500 10.5px/1 var(--font-sans); color: var(--fg-2);
+  display:inline-flex; align-items:center; gap:4px; flex:0 0 auto; }
+.add-menu .comp-row .mini svg { width:11px; height:11px; }
+.add-menu .comp-row .mini:hover:not([disabled]) { background: var(--surf-hover); color: var(--fg-1); }
+.add-menu .comp-row .mini.open { opacity:.5; cursor:default; }
+.menu .name-row { display:flex; gap:6px; padding:5px 6px 4px; }
+.menu .name-row input { flex:1; min-width:0; height:26px; padding:0 8px; border:1px solid var(--line-med);
+  border-radius:6px; background: var(--surface-default); font:400 12px/1 var(--font-sans);
+  color: var(--fg-1); outline:none; }
+.menu .name-row input:focus { border-color: var(--input-border-focus); }
+.menu .name-row button { height:26px; padding:0 10px; border:0; border-radius:6px;
+  background: var(--blurple-600, #5F5FC2); color:#fff; font:600 11px/1 var(--font-sans); }
 .tab .comp { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font:500 10px/1 var(--font-sans); color: var(--fg-3); background: var(--surf-hover);
   border-radius:999px; padding:3px 7px; flex:0 1 auto; }

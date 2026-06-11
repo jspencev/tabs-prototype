@@ -104,6 +104,13 @@ button { font-family: inherit; cursor: pointer; }
   font:500 11.5px/1 var(--font-sans); color: var(--fg-2); }
 .comps-pop .cp-new:hover { background: var(--surf-hover); }
 .comps-pop .cp-new svg { width:13px; height:13px; }
+.comps-pop .cp-name { display:flex; gap:6px; margin-top:6px; }
+.comps-pop .cp-name input { flex:1; min-width:0; height:30px; padding:0 9px; border:1px solid var(--line-med);
+  border-radius: var(--radius-md); background: var(--surface-default); font:400 12px/1 var(--font-sans);
+  color: var(--fg-1); outline:none; }
+.comps-pop .cp-name input:focus { border-color: var(--input-border-focus); }
+.comps-pop .cp-name button { height:30px; padding:0 12px; border:0; border-radius: var(--radius-md);
+  background: var(--blurple-600, #5F5FC2); color:#fff; font:600 11.5px/1 var(--font-sans); }
 
 /* clip list inside Underlord messages */
 .clip-list { display:flex; flex-direction:column; gap:5px; margin-top:2px; }
