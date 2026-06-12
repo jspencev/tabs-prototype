@@ -17,7 +17,7 @@ const tlClock = (s) => {
   s = Math.max(0, Math.round(s));
   return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 };
-const tlSpeaker = (name) => (name === "Ashley Donat" ? "#b84676" : "#2f7d72");
+const tlSpeaker = () => "#2f7d72";
 const tlPinIcon = (kind) => kind === "audio" ? Icons.audio : kind === "media" ? Icons.video : Icons.type;
 
 function TlWave({ color }) {
@@ -28,7 +28,8 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
   const D = window.DEMO || {};
   const full = D.timeline || { durationSec: 1, scenes: [], pins: [], script: { words: [], segments: [] } };
   // Scenario-aware content: empty → nothing; post-upload → one unsegmented
-  // recording, no pins; rough-cut+ → the full scene/pin model.
+  // recording plus the music bed (Notion Task: drag it to start with the intro);
+  // rough-cut+ → the full scene/pin model.
   const videoAdded = !!(demo && demo.videoAdded);
   const scenesAdded = !!(demo && demo.scenesAdded);
   const introAdded = !!(demo && demo.introAdded);
@@ -37,7 +38,7 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
     : !scenesAdded
       ? { durationSec: full.durationSec,
           scenes: [{ name: D.fileName || "Recording", startSec: 0, durSec: full.durationSec }],
-          pins: [], script: full.script }
+          pins: full.pins.filter((p) => p.kind === "audio"), script: full.script }
       : full;
   // "Add an intro" prepends a title slide: shift everything right by its length.
   const model = introAdded

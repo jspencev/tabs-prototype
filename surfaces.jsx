@@ -91,11 +91,11 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
     transition: "fade", transDur: 0.5, length: 8, blur: 0,
   });
   const [vid, setVid] = useState({
-    clip: "MM 3.2.26 — full", scale: 100, rotation: 0, opacity: 100, radius: 0,
+    clip: "AI for Product Marketing — full", scale: 100, rotation: 0, opacity: 100, radius: 0,
     volume: 80, speed: 1,
   });
   const [txt, setTxt] = useState({
-    text: "Neda Navab", fontFamily: "Booton", fontSize: 30, weight: 600, italic: false,
+    text: "Jordan", fontFamily: "Booton", fontSize: 30, weight: 600, italic: false,
     textAlign: "left", verticalAlign: "bottom", lineHeight: 1.1, letterSpacing: 0,
     color: "#FFF8F4", box: "auto-width", opacity: 100, x: 5, y: 72,
   });
@@ -198,7 +198,7 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
                 <div className="lt-name" style={{ fontFamily: (FONT_STACK[txt.fontFamily] || "inherit"),
                      fontSize: txt.fontSize, fontWeight: txt.weight, color: txt.color, textAlign: txt.textAlign,
                      fontStyle: txt.italic ? "italic" : "normal", opacity: txt.opacity / 100 }}>{txt.text}</div>
-                <div className="lt-role">Compass · Real Estate</div>
+                <div className="lt-role">Product Marketer</div>
                 {sel === "text" && <><span className="h tl"></span><span className="h tr"></span><span className="h bl"></span><span className="h br"></span></>}
               </div>
             )}
@@ -247,7 +247,7 @@ function PlanDoc({ updated, onGo, goPulse }) {
       </div>
       <div className="doc-body">
         <h1>{plan.title}</h1>
-        <p className="lede">A working plan to restructure “{D.projectTitle}” into a tighter client-experience story. Underlord will reorder the script to match. Refine it by talking to Underlord, then press Go to run.</p>
+        <p className="lede">A working plan to restructure “{D.projectTitle}” into a tighter, payoff-first story. Underlord will reorder the script to match. Refine it by talking to Underlord, then press Go to run.</p>
 
         <h2>Plan</h2>
         <ol>

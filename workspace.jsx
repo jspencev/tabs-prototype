@@ -132,8 +132,8 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
                     const I = Icons[SURFACE_DEFS[k].icon];
                     const isOpen = openKinds.has(k);
                     return (
-                      <div className={"mi" + (isOpen ? " disabled" : "")} key={k}
-                           onClick={isOpen ? undefined : () => { on.openSurface(pane.id, k); setMenu(false); }}>
+                      <div className={"mi" + (isOpen ? " open" : "")} key={k}
+                           onClick={() => { on.openSurface(pane.id, k); setMenu(false); }}>
                         <I/> {SURFACE_DEFS[k].label}
                         {isOpen && <span className="k">Open</span>}
                       </div>

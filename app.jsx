@@ -320,7 +320,7 @@ function App() {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setRearranged(true);
-      setConvo((c) => [...c, { role: "ai", text: "Done — the cut now opens on the thesis and groups the listing tactics together.", review: true }]);
+      setConvo((c) => [...c, { role: "ai", text: "Done — the cut now opens on the payoff and groups the research sections together.", review: true }]);
     }, 1300);
   };
   const runChapters = (text) => {
@@ -331,7 +331,7 @@ function App() {
     timer.current = setTimeout(() => {
       setThinking(false);
       setChaptersAdded(true);
-      setConvo((c) => [...c, { role: "ai", text: "Added 4 chapters: Big is Your Engine, Boutique is Your Edge, Listing Resources, Open House Script." }]);
+      setConvo((c) => [...c, { role: "ai", text: "Added 8 chapters: Introduction, Competitive Research, Customer & Persona Research, Messaging & Positioning, and 4 more — you'll see them in the script and as scenes on the timeline." }]);
     }, 1400);
   };
 
@@ -441,6 +441,7 @@ function App() {
     if (/create clips|make (some )?clips|social clips|clip the|cut.+clips/.test(t)) { runCreateClips(text); return; }
     if (/add (an |the )?intro|intro (slide|title)/.test(t)) { runAddIntro(text); return; }
     if (/lower.?third|speaker(?:'s)? name|name and title|name & title|speaker layout/.test(t)) { runAddLowerThird(text); return; }
+    if (/studio ?sound|background noise|clean.+audio/.test(t)) { runStudioSoundSkill(text); return; }
     if (/stock|b-roll|broll|find (me )?(a|an|some) |image of|footage|background image/.test(t)) { runStockGuide(text); return; }
     runGenericAck(text, setConvo, setThinking, timer);
   };
@@ -679,6 +680,18 @@ function App() {
   const onSkill = (id) => {
     if (id === "fillers") runFillerBeat();
     if (id === "clips") runCreateClips();
+    if (id === "studioSound") runStudioSoundSkill();
+  };
+  const runStudioSoundSkill = (text) => {
+    openSurface(panes[panes.length - 1].id, "video", true, "main");
+    setConvo((c) => [...c, { role: "user", text: text || "Studio Sound" }]);
+    setThinking(true);
+    if (!fx.studioSound && !fx.ssBusy) toggleEffect("studioSound");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setConvo((c) => [...c, { role: "ai", text: "Applied Studio Sound across the project — background noise is gone and voices sound crisp. Tune the intensity from the Studio Sound pill on the canvas, or in Properties." }]);
+    }, 1800);
   };
   const runFillerBeat = () => {
     openSurface(panes[panes.length - 1].id, "script");
@@ -834,7 +847,7 @@ function App() {
       <header className="top">
         <button className={"chrome-btn icon" + (ulOpen ? " on" : "")} title="Toggle Underlord"
                 onClick={() => setUlOpen((v) => !v)}><Icons.robot/></button>
-        <div className="title">Launch video — rough cut<span className="crumb">Marketing</span>
+        <div className="title">{(window.DEMO && window.DEMO.projectTitle) || "Untitled project"}<span className="crumb">Marketing</span>
           {videoAdded && (
             <button ref={compRef} className={"comp-btn" + (compsOpen ? " on" : "")}
                     title="Compositions" onClick={toggleComps}>
@@ -979,7 +992,7 @@ function ModeratorPanel({ scenario, onScenario, onReset, onClose }) {
     <div className="mod-panel" onClick={(e) => e.stopPropagation()}>
       <div className="mod-head">
         <span className="mod-title">Moderator</span>
-        <span className="mod-kbd">⌃.</span>
+        <span className="mod-kbd">⌘⇧P</span>
         <button className="icon-ghost" title="Close" onClick={onClose}><Icons.x/></button>
       </div>
       <div className="mod-label">Set-up state</div>

@@ -1,4 +1,4 @@
-# Presenter script — Guided rough-cut demo (Neda Navab project)
+# Presenter script — Guided rough-cut demo (“AI for Product Marketing” project)
 
 A free-clicking prototype. All "AI" is faked and fires in the order below as you trigger it. No real LLM, no media processing. Open `Editor 4.0 - Adaptive Tabs.html` (served over http://). **Reset** between runs = reload the page (returns to Chatty Home).
 
@@ -36,7 +36,7 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 3. Push back — type: `Keep the audience question where it was` → Enter. The **Plan tab updates** to the revised plan.
 4. Press **Go** (top-right of the Plan tab).
 
-**Shows:** a real **Plan tab** with the steps; on Go the **script visibly reorders** (now opens on the boutique thesis, groups the tactics).
+**Shows:** a real **Plan tab** with the steps; on Go the **script visibly reorders** (now opens on the payoff thesis, groups the research sections).
 
 **Say:** "For bigger moves it doesn't just do — it plans. You steer the plan in plain language, approve it, and only then does it execute. That's the trust model: review before run."
 
@@ -54,7 +54,7 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 **Do:**
 1. In the composer, type: `Split this into chapters` → Enter.
 
-**Shows:** chapter markers appear in the Script at the real moments — **Big is Your Engine** (0:00), **Boutique is Your Edge** (3:03), **Listing Resources** (8:31), **Open House Script** (12:49).
+**Shows:** chapter markers appear in the Script at the real moments — **Introduction** (0:00), **Competitive Research** (0:58), **Customer & Persona Research** (2:32), through **Wrap-Up** (11:06).
 
 **Say:** "Structure on demand. It found the real topic shifts and dropped chapters right into the script."
 
@@ -66,7 +66,7 @@ Throughout, the thesis to land: **everything is a tab** — video, script, plan 
 2. Click **Ask Underlord** on that toolbar — it expands in place into the mist chat prompt at the same spot (the same place `/` docks to after you send). Press **Esc** to collapse back to the toolbar.
 3. Click the **Timeline** button (bottom center) to reveal the timeline.
 
-**Shows:** the toolbar adapting to selection; Underlord opening from the toolbar; Descript-style scene strip (the four chapters as scenes) over A/V tracks (Neda / Ashley / Dialogue / Music / Titles), transport + Split + zoom.
+**Shows:** the toolbar adapting to selection; Underlord opening from the toolbar; Descript-style scene strip (the chapters as scenes) over A/V tracks (Dialogue / Music / Titles), transport + Split + zoom.
 
 **Say:** "The toolbar adapts to whatever you've selected — clip tools, scene tools — and Underlord is always right there. Click it and it becomes the prompt, docked exactly where the mist chat lands. Underneath the conversation it's still a full editor — scenes, tracks, the works."
 
