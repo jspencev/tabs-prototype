@@ -16,6 +16,9 @@ const URL_SCENARIO = (() => {
            "clips-added": "clipsAdded", "clipsadded": "clipsAdded" }[s] || null;
 })();
 const DEFAULT_SCENARIO = URL_SCENARIO || "empty";
+// ?task=N puts Underlord in task mode: the participant's first message plays
+// that task's scripted beat regardless of wording (see TASK_BEATS).
+const URL_TASK = parseInt(new URLSearchParams(window.location.search).get("task"), 10) || 0;
 
 // Moderator set-up states — the starting points the research tasks assume.
 const SCENARIOS = [
@@ -84,6 +87,9 @@ function App() {
   // One-time onboarding: the very first new tab a user opens lands as a split
   // on the other side, to teach the multi-pane model.
   const firstOpenSplit = useRef(true);
+  // Task mode: the beat plays once per task page load; later messages fall
+  // back to keyword routing.
+  const taskBeatFired = useRef(false);
 
   // ---- ephemeral mist chat (summoned by "/") — its own conversation ----
   const [mistOpen, setMistOpen] = useState(false);
@@ -138,7 +144,9 @@ function App() {
   const [introAdded, setIntroAdded] = useState(false);
   const [introBg, setIntroBg] = useState(null);        // CSS background from a Stock tile
   const [playZone, setPlayZone] = useState("video");   // 'intro' | 'video'
-  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded, introAdded };
+  // Task 8 beat: Underlord "moves" the music bed to 0:00 (timeline applies it).
+  const [musicMoved, setMusicMoved] = useState(false);
+  const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded, introAdded, musicMoved };
 
   // ===== tab operations =====
   const activate = (paneId, tabId) =>
@@ -230,9 +238,9 @@ function App() {
     });
   };
 
-  const splitDrop = (tabId, afterPaneId) => {
+  const splitDrop = (tabId, afterPaneId, via = "drag") => {
     if (tabId == null) return;
-    TRK("split_created", { via: "drag" });
+    TRK("split_created", { via });
     setPanes((ps) => {
       if (ps.length > 1) { return ps; } // handled by moveTab when already split
       const src = ps[0];
@@ -456,6 +464,14 @@ function App() {
       if (/^(go|approve|run it|looks good|do it|ship it)/.test(t)) { setConvo((c) => [...c, { role: "user", text }]); onPlanGo(); return; }
       revisePlan(text); return;
     }
+    // Task mode (GQ links): the first message plays the task's beat verbatim,
+    // whatever the wording — participants can't stall off-script. Later
+    // messages fall through to the keyword routing below.
+    if (URL_TASK && !taskBeatFired.current && TASK_BEATS[URL_TASK]) {
+      taskBeatFired.current = true;
+      TASK_BEATS[URL_TASK](text);
+      return;
+    }
     // Plan phrase must be tested before the bare script phrase (one contains the other).
     if (/edit the script with a plan|with a plan|make a plan/.test(t)) { runRearrangePlan(text); return; }
     if (/edit the script|remove filler|clean up the script|tighten the script/.test(t)) { runDirectScriptEdit(text); return; }
@@ -487,6 +503,7 @@ function App() {
     setSceneLayout("Default Camera");
     setMediaSeg("project"); setCustomComps([]); setCompsOpen(false);
     setIntroAdded(false); setIntroBg(null); setPlayZone("video");
+    setMusicMoved(false); window.DEMO_TEXT_STYLE = null; taskBeatFired.current = false;
     setTlOpen(false);
     setView("editor");
   };
@@ -708,6 +725,66 @@ function App() {
     openSurface(panes[panes.length - 1].id, "video", true, "main");
   };
 
+  // ===== task mode (GQ links): beats for tasks without a keyword trigger =====
+  const runTaskGuidance = (text, reply) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setConvo((c) => [...c, { role: "ai", text: reply }]);
+    }, 1100);
+  };
+
+  // Task 7: restyle the speaker lower-third. The text-layer state lives in
+  // VideoSurface, so the override travels via window.DEMO_TEXT_STYLE + an event
+  // (applied on mount too, in case the canvas isn't showing yet).
+  const runStyleTextBeat = (text) => {
+    TRK("text_style_changed", { via: "underlord" });
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      openSurface(panes[panes.length - 1].id, "video", true, "main");
+      setTextLayerVisible(true);
+      window.DEMO_TEXT_STYLE = { color: "#A3A3EE", fontSize: 38 };
+      window.dispatchEvent(new Event("demo:style-text"));
+      setSelection("text");
+      setConvo((c) => [...c, { role: "ai",
+        text: "Restyled the speaker name — larger, in the brand purple. Tweak the font, size, or color further in the Properties panel on the right." }]);
+    }, 1300);
+  };
+
+  // Task 8: slide the music bed to the end of the introduction scene.
+  const runMusicToStart = (text) => {
+    TRK("music_repositioned", { via: "underlord" });
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      setTlOpen(true);
+      setMusicMoved(true);
+      setConvo((c) => [...c, { role: "ai",
+        text: "Moved the music bed so it starts right where the introduction ends — you can see it on the timeline below, and drag it anytime." }]);
+    }, 1300);
+  };
+
+  // Task 15: perform the split (Script beside Canvas) on the participant's behalf.
+  const runSplitBeat = (text) => {
+    setConvo((c) => [...c, { role: "user", text }]);
+    setThinking(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setThinking(false);
+      const scriptTab = Object.values(tabsById).find((tb) => tb.kind === "script" && (tb.comp || "main") === "main");
+      if (scriptTab && panes.length === 1) splitDrop(scriptTab.id, null, "underlord");
+      setConvo((c) => [...c, { role: "ai",
+        text: "Done — script on the right, canvas on the left. You can make a split yourself anytime by dragging a tab to the right edge of the tab bar." }]);
+    }, 1300);
+  };
+
   // ===== guided demo: skills =====
   const onSkill = (id) => {
     if (id === "fillers") runFillerBeat();
@@ -741,6 +818,25 @@ function App() {
     }, 1400);
   };
 
+  // Task number → the beat any message should play (the Notion research plan's
+  // "right thing" per task). Tasks 1–2 are pre-upload (the no-media gate already
+  // answers correctly) and 13 is verbal-only, so they're absent. Declared after
+  // every beat above — the map captures them by value at render time.
+  const TASK_BEATS = {
+    3:  (t) => runTaskGuidance(t, "A good place to start is the Script tab — your video edits like a doc there. Or just tell me what you want changed and I'll take care of it."),
+    4:  runDirectScriptEdit,
+    5:  runStockGuide,
+    6:  runAddLowerThird,
+    7:  runStyleTextBeat,
+    8:  runMusicToStart,
+    9:  runStudioSoundSkill,
+    10: (t) => runTaskGuidance(t, "I can do that for you — the Create clips skill finds the strongest moments and cuts them into shareable clips. Type “/” and pick Create clips whenever you're ready."),
+    11: runCreateClips,
+    12: runListClips,
+    14: (t) => runTaskGuidance(t, "The [+] button in the tab bar opens any surface as a new tab — Canvas, Script, Media, Publish, or a whole new composition."),
+    15: runSplitBeat,
+  };
+
   // ===== drawer chat history =====
   const archiveCurrent = (list) => {
     if (convo.length === 0) return list;
@@ -766,6 +862,15 @@ function App() {
   // ===== mist chat (secondary surface — placeholder responses only) =====
   const mistSend = (text) => {
     TRK("underlord_message", { via: "mist" });
+    // Task mode: a mist message counts as talking to Underlord — dock into the
+    // drawer and play the task's beat there, same as drawerSend.
+    if (URL_TASK && !taskBeatFired.current && TASK_BEATS[URL_TASK] && videoAdded && planPhase == null) {
+      taskBeatFired.current = true;
+      setMistOpen(false); setMistDocked(false); setMistConvo([]);
+      setUlOpen(true);
+      TASK_BEATS[URL_TASK](text);
+      return;
+    }
     setMistConvo((c) => [...c, { role: "user", text }]);
     setMistDocked(true);
     setMistThinking(true);

@@ -53,6 +53,14 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
   const [pins, setPins] = useState(() => model.pins.map((p) => ({ ...p })));
   const [sel, setSel] = useState(null);
   React.useEffect(() => { setPins(model.pins.map((p) => ({ ...p }))); setSel(null); }, [videoAdded, scenesAdded, introAdded]);
+  // Underlord's "move the music" beat (Task 8): the task says the music should
+  // start after the introduction ends, i.e. at the first scene's end edge.
+  const musicMoved = !!(demo && demo.musicMoved);
+  React.useEffect(() => {
+    if (!musicMoved) return;
+    const introEnd = model.scenes.length > 1 ? model.scenes[0].startSec + model.scenes[0].durSec : 0;
+    setPins((ps) => ps.map((p) => p.kind === "audio" ? { ...p, startSec: introEnd } : p));
+  }, [musicMoved]);
   const [playSec, setPlaySec] = useState(215);
   // When the intro lands, park the playhead inside it so the canvas shows it;
   // afterwards every seek reports which section the playhead is in.

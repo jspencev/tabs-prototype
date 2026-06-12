@@ -130,6 +130,16 @@ function VideoSurface({ demo, sel, setSel, fx, onEffect, onStudioSound, textLaye
     window.addEventListener("mouseup", up);
   };
 
+  // Underlord's "restyle the speaker name" beat (Task 7) parks an override in
+  // window.DEMO_TEXT_STYLE — apply it on mount (the canvas may not have been
+  // showing when the beat ran) and live via the demo:style-text event.
+  useEffect(() => {
+    const apply = () => { if (window.DEMO_TEXT_STYLE) setTxt((p) => ({ ...p, ...window.DEMO_TEXT_STYLE })); };
+    apply();
+    window.addEventListener("demo:style-text", apply);
+    return () => window.removeEventListener("demo:style-text", apply);
+  }, []);
+
   // Clear the app-level selection when the canvas surface unmounts.
   useEffect(() => () => { if (setSel) setSel(null); }, []);
   // Crossing the intro/video boundary invalidates the current selection.
