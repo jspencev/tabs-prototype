@@ -3,7 +3,19 @@ const { useState, useEffect, useRef, useCallback } = React;
 
 const UL_WIDTH = 320;
 const TL_HEIGHT = 300;
-const DEFAULT_SCENARIO = "empty";
+
+// Study telemetry (metrics.js) — no-op if it didn't load.
+const TRK = (e, p) => window.METRICS && window.METRICS.track(e, p);
+
+// ?state= from a Great Question task link drops the participant straight into
+// a set-up state (hyphenated or camelCase), bypassing the moderator panel.
+const URL_SCENARIO = (() => {
+  const s = (new URLSearchParams(window.location.search).get("state") || "").toLowerCase();
+  return { "empty": "empty", "post-upload": "postUpload", "postupload": "postUpload",
+           "rough-cut": "roughCut", "roughcut": "roughCut",
+           "clips-added": "clipsAdded", "clipsadded": "clipsAdded" }[s] || null;
+})();
+const DEFAULT_SCENARIO = URL_SCENARIO || "empty";
 
 // Moderator set-up states — the starting points the research tasks assume.
 const SCENARIOS = [
@@ -108,8 +120,10 @@ function App() {
   const [fx, setFx] = useState(FX_DEFAULTS);        // canvas effects (lifted from VideoSurface)
   const [ssPop, setSsPop] = useState(null);         // Studio Sound intensity popover: { rect } | null
   // The speaker lower-third starts hidden everywhere: Task 6 is the participant
-  // *adding* it (Speaker layout / Add element → Text).
-  const [textLayerVisible, setTextLayerVisible] = useState(false);
+  // *adding* it (Speaker layout / Add element → Text). Task links can pre-place
+  // it with &lt=1 (Task 7 continues from a just-added text layer).
+  const [textLayerVisible, setTextLayerVisible] = useState(
+    new URLSearchParams(window.location.search).get("lt") === "1");
   const [freeTextVisible, setFreeTextVisible] = useState(false); // "Add element → Text" layer
   const [sceneLayout, setSceneLayout] = useState("Default Camera"); // active scene layout (picker)
   const fxTimers = useRef({});
@@ -162,10 +176,12 @@ function App() {
       return existing.id;
     }
     const nt = makeTab(kind, { comp, ...extra });
+    TRK("surface_opened", { target: kind });
     setTabsById((m) => ({ ...m, [nt.id]: nt }));
     // First new tab ever opens as a split on the other side (once per session).
     if (firstOpenSplit.current) {
       firstOpenSplit.current = false;
+      TRK("split_created", { via: "auto-first-tab" });
       setPanes((ps) => ps.length > 1
         ? ps.map((p) => p.id === paneId ? { ...p, tabIds: [...p.tabIds, nt.id], activeId: nt.id } : p)
         : [...ps, { id: uid("p"), tabIds: [nt.id], activeId: nt.id }]);
@@ -201,6 +217,7 @@ function App() {
   };
 
   const splitFromActive = (paneId) => {
+    TRK("split_created", { via: "split-button" });
     setPanes((ps) => {
       if (ps.length > 1) return ps;
       const src = ps.find((p) => p.id === paneId);
@@ -215,6 +232,7 @@ function App() {
 
   const splitDrop = (tabId, afterPaneId) => {
     if (tabId == null) return;
+    TRK("split_created", { via: "drag" });
     setPanes((ps) => {
       if (ps.length > 1) { return ps; } // handled by moveTab when already split
       const src = ps[0];
@@ -337,6 +355,7 @@ function App() {
 
   // Direct (no-plan) script edit — the lighter edit: remove filler words.
   const runDirectScriptEdit = (text) => {
+    TRK("fillers_removed", { via: "underlord" });
     setConvo((c) => [...c, { role: "user", text }]);
     focusScript();
     setThinking(true);
@@ -356,6 +375,7 @@ function App() {
 
   // "Find me a…" → point at the stock library and open it (Notion Task 5).
   const runStockGuide = (text) => {
+    TRK("stock_opened", { via: "underlord" });
     setConvo((c) => [...c, { role: "user", text }]);
     setThinking(true);
     clearTimeout(timer.current);
@@ -370,6 +390,7 @@ function App() {
   // ===== Script tab AI actions (header pills — direct manipulation, no chat) =====
   const runScriptTool = (kind) => {
     if (scriptBusy) return;
+    TRK("fillers_removed", { via: "script-pill:" + kind });
     setScriptBusy(kind);
     setFillerStriking(true);
     clearTimeout(scriptTimer.current);
@@ -402,6 +423,7 @@ function App() {
   const ignoreSelection = () => {
     const r = scriptRange.current;
     if (!r) return;
+    TRK("script_ignore");
     const span = document.createElement("span");
     span.className = "ignored";
     try { r.surroundContents(span); }
@@ -413,6 +435,7 @@ function App() {
   const deleteSelection = () => {
     const r = scriptRange.current;
     if (!r) return;
+    TRK("script_delete");
     r.deleteContents();
     const s = document.getSelection();
     if (s) s.removeAllRanges();
@@ -420,6 +443,7 @@ function App() {
   };
 
   const drawerSend = (text) => {
+    TRK("underlord_message", { via: "drawer" });
     const t = text.toLowerCase().trim();
     // Precondition gate: with no media, Underlord can't pretend to do anything —
     // it plays the upload-guidance line instead of any scripted beat.
@@ -472,6 +496,7 @@ function App() {
   const toggleComps = () => {
     setCompsNaming(false); setCompsName("");
     if (compsOpen) { setCompsOpen(false); return; }
+    TRK("comps_menu_opened");
     const r = compRef.current && compRef.current.getBoundingClientRect();
     if (r) setCompsPos({ top: r.bottom + 8, left: r.left });
     setCompsOpen(true);
@@ -506,7 +531,7 @@ function App() {
   // opens the same one, anchored to its trigger; applying kicks off processing.
   const onStudioSound = (rect) => {
     setSsPop({ rect });
-    if (!fx.studioSound && !fx.ssBusy) toggleEffect("studioSound");
+    if (!fx.studioSound && !fx.ssBusy) { TRK("studio_sound_applied", { via: "pill-popover" }); toggleEffect("studioSound"); }
   };
   const removeStudioSound = () => { if (fx.studioSound) toggleEffect("studioSound"); setSsPop(null); };
   const deleteTextLayer = () => {
@@ -518,9 +543,10 @@ function App() {
   // Apply a scene layout from the picker (Notion Task 6). "Speaker Name" is the
   // lower-third; selecting it shows the name/title overlay. Other layouts just
   // register as the active layout (believable-but-canned, like the rest).
-  const applyLayout = (name) => {
+  const applyLayout = (name, via = "layout-picker") => {
+    TRK("layout_applied", { target: name, via });
     setSceneLayout(name);
-    if (name === "Speaker Name") { setTextLayerVisible(true); setSelection("text"); }
+    if (name === "Speaker Name") { TRK("lower_third_added", { via }); setTextLayerVisible(true); setSelection("text"); }
     else { setTextLayerVisible(false); if (selection === "text") setSelection("scene"); }
   };
 
@@ -528,14 +554,15 @@ function App() {
   // (Notion Task 6) act; the rest just close the menu.
   const onRepAction = (kind, item) => {
     if (kind === "layout") { applyLayout(item); return; }
-    if (kind === "add" && (item === "Speaker name" || item === "Subtitle")) { setTextLayerVisible(true); setSelection("text"); return; }
-    if (kind === "add" && (item === "Text" || item === "Title")) { setFreeTextVisible(true); setSelection("text2"); return; }
+    if (kind === "add" && (item === "Speaker name" || item === "Subtitle")) { TRK("element_added", { target: item }); TRK("lower_third_added", { via: "add-element" }); setTextLayerVisible(true); setSelection("text"); return; }
+    if (kind === "add" && (item === "Text" || item === "Title")) { TRK("element_added", { target: item }); setFreeTextVisible(true); setSelection("text2"); return; }
   };
 
   // ===== empty Video tab: direct upload/record just adds media =====
   // Direct manipulation, NOT a chat action — it must not touch Underlord. Only
   // uploading *through* Underlord (its attachment) would make Underlord respond.
   const addMedia = () => {
+    TRK("media_added", { via: "direct-upload" });
     setScenario("postUpload");
     setVideoAdded(true);
   };
@@ -544,6 +571,7 @@ function App() {
   // The one upload path that legitimately makes Underlord respond. Underlord is
   // on rails: this plays a scripted acknowledgement, it does not execute anything.
   const uploadViaUnderlord = (text, file) => {
+    TRK("media_added", { via: "underlord-attachment" });
     const msg = { role: "user", file };
     if (text) msg.text = text;
     setConvo((c) => [...c, msg]);
@@ -559,6 +587,7 @@ function App() {
 
   // ===== guided demo: entry from Chatty Home =====
   const enterEditor = ({ prompt, file }) => {
+    TRK("media_added", { via: "home-upload" });
     setView("editor");
     setUlOpen(true);
     const D = window.DEMO || {};
@@ -577,6 +606,7 @@ function App() {
 
   // ===== clips & compositions =====
   const openClip = (clip) => {
+    TRK("clip_opened", { target: clip.name });
     openSurface(panes[panes.length - 1].id, "video", true, clip.id, { compName: clip.name });
   };
   // User-created compositions live in a registry so the [+] menu and the
@@ -602,6 +632,7 @@ function App() {
     openSurface(paneId, kind, true, comp.id, { compName: comp.name, blank: !!comp.blank });
   };
   const runCreateClips = (text) => {
+    TRK("clips_created", { via: text ? "underlord" : "skill" });
     setConvo((c) => [...c, { role: "user", text: text || "Create clips" }]);
     setThinking(true);
     clearTimeout(timer.current);
@@ -657,7 +688,7 @@ function App() {
     timer.current = setTimeout(() => {
       setThinking(false);
       openSurface(panes[panes.length - 1].id, "video", true, "main");
-      applyLayout("Speaker Name");
+      applyLayout("Speaker Name", "underlord");
       setConvo((c) => [...c, { role: "ai",
         text: "Applied the Speaker Name layout — the speaker's name and title now sit in the lower-left. Click the text on the canvas to edit it, or drag to reposition." }]);
     }, 1300);
@@ -666,6 +697,7 @@ function App() {
   // Stock "+" (Add as new layer): with an intro, the clip drops in behind the
   // intro title; otherwise it behaves like a plain add-to-canvas.
   const onStockAdd = (item, gradient) => {
+    TRK("stock_added", { target: item && item.t });
     if (introAdded) {
       if (gradient) setIntroBg(gradient);
       setPlayZone("intro");
@@ -683,6 +715,7 @@ function App() {
     if (id === "studioSound") runStudioSoundSkill();
   };
   const runStudioSoundSkill = (text) => {
+    TRK("studio_sound_applied", { via: text ? "underlord" : "skill" });
     openSurface(panes[panes.length - 1].id, "video", true, "main");
     setConvo((c) => [...c, { role: "user", text: text || "Studio Sound" }]);
     setThinking(true);
@@ -694,6 +727,7 @@ function App() {
     }, 1800);
   };
   const runFillerBeat = () => {
+    TRK("fillers_removed", { via: "skill" });
     openSurface(panes[panes.length - 1].id, "script");
     setConvo((c) => [...c, { role: "user", text: "Remove filler words" }]);
     setThinking(true);
@@ -731,6 +765,7 @@ function App() {
 
   // ===== mist chat (secondary surface — placeholder responses only) =====
   const mistSend = (text) => {
+    TRK("underlord_message", { via: "mist" });
     setMistConvo((c) => [...c, { role: "user", text }]);
     setMistDocked(true);
     setMistThinking(true);
@@ -812,7 +847,8 @@ function App() {
     sel: selection, setSel: setSelection,
     fx, onEffect: toggleEffect, onStudioSound, textLayerVisible, freeTextVisible,
     onScriptTool: runScriptTool, scriptBusy,
-    mediaSeg, setMediaSeg, openClip,
+    mediaSeg, openClip,
+    setMediaSeg: (s) => { if (s === "stock") TRK("stock_opened", { via: "media-tab" }); setMediaSeg(s); },
     intro: { added: introAdded, bg: introBg, zone: playZone }, onStockAdd,
     newComposition, onFillBlank: fillBlankComp, openComp,
     comps: [
@@ -942,7 +978,7 @@ function App() {
           <div className="ws-main">
             <Workspace panes={panes} tabsById={tabsById} density="comfortable" on={on} demo={demo}/>
             {!mistOpen && <CommandBar context={cmdContext} fx={fx} onEffect={toggleEffect} onStudioSound={onStudioSound} onDeleteText={deleteTextLayer} onIgnore={ignoreSelection} onDeleteSel={deleteSelection} onRep={onRepAction} currentLayout={sceneLayout} onUnderlord={openMistDock} dockCenterX={dockCenterX} dockBottom={dockBottom}/>}
-            {!tlOpen && <TimelinePull onOpen={() => setTlOpen(true)}/>}
+            {!tlOpen && <TimelinePull onOpen={() => { TRK("timeline_opened"); setTlOpen(true); }}/>}
           </div>
           <Timeline open={tlOpen} height={TL_HEIGHT} demo={demo} appSel={selection} setAppSel={setSelection} playZone={playZone} onPlayZone={setPlayZone} onClose={() => setTlOpen(false)}/>
         </div>

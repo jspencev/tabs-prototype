@@ -58,6 +58,7 @@ function Pane({ pane, tabsById, isSplit, density, drag, on, demo }) {
   const toggleMenu = () => {
     setNaming(false); setNameDraft(""); setHoverComp(null);
     if (menu) { setMenu(false); return; }
+    if (window.METRICS) window.METRICS.track("plus_menu_opened");
     const r = addRef.current && addRef.current.getBoundingClientRect();
     if (r) setMenuPos({ top: r.bottom + 6, left: r.left });
     setMenu(true);

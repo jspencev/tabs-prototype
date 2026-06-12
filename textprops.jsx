@@ -16,7 +16,18 @@ function PSeg({ value, options, onChange }) {
   );
 }
 
-function TextProperties({ st, set, onClose, side }) {
+// Telemetry: text styling edits count toward the visual-edits task. Throttled —
+// sliders and typing would otherwise emit per tick.
+let _styleTrackAt = 0;
+function trackStyle(prop) {
+  const now = Date.now();
+  if (now - _styleTrackAt < 2000) return;
+  _styleTrackAt = now;
+  if (window.METRICS) window.METRICS.track("text_style_changed", { target: prop });
+}
+
+function TextProperties({ st, set: rawSet, onClose, side }) {
+  const set = (k, v) => { trackStyle(k); rawSet(k, v); };
   return (
     <div className={"props" + (side === "left" ? " left" : "")} onClick={(e) => e.stopPropagation()}>
       <div className="props-h">

@@ -111,7 +111,9 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
     const startX = e.clientX;
     const orig = pin.startSec;
     const thresh = 8 / pxPerSec;
+    let moved = false;
     const onMove = (ev) => {
+      if (Math.abs(ev.clientX - startX) > 4) moved = true;
       let next = orig + (ev.clientX - startX) / pxPerSec;
       next = Math.max(0, Math.min(dur - pin.durSec, next));
       let line = null;
@@ -133,7 +135,10 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
       setSnapX(line);
       setPins((ps) => ps.map((p) => (p.id === pin.id ? { ...p, startSec: next } : p)));
     };
-    const onUp = () => { setSnapX(null); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    const onUp = () => {
+      if (moved && window.METRICS) window.METRICS.track(pin.kind === "audio" ? "music_repositioned" : "clip_repositioned", { target: pin.title });
+      setSnapX(null); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp);
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
