@@ -61,10 +61,16 @@ function Timeline({ open, height, demo, appSel, setAppSel, playZone, onPlayZone,
     const introEnd = model.scenes.length > 1 ? model.scenes[0].startSec + model.scenes[0].durSec : 0;
     setPins((ps) => ps.map((p) => p.kind === "audio" ? { ...p, startSec: introEnd } : p));
   }, [musicMoved]);
-  const [playSec, setPlaySec] = useState(215);
-  // When the intro lands, park the playhead inside it so the canvas shows it;
-  // afterwards every seek reports which section the playhead is in.
-  React.useEffect(() => { if (introAdded) setPlaySec(TL_INTRO_DUR / 2); }, [introAdded]);
+  // Start in the intro only when the initial zone asks for it (Task 5); other
+  // intro-bearing states (rough cut) open parked on the video frame.
+  const [playSec, setPlaySec] = useState(introAdded && playZone === "intro" ? TL_INTRO_DUR / 2 : 215);
+  // When the intro is *newly* added mid-session, park the playhead inside it so
+  // the canvas shows it. Don't fire on mount when the intro is already present.
+  const introWas = useRef(introAdded);
+  React.useEffect(() => {
+    if (introAdded && !introWas.current) setPlaySec(TL_INTRO_DUR / 2);
+    introWas.current = introAdded;
+  }, [introAdded]);
   React.useEffect(() => {
     if (introAdded && onPlayZone) onPlayZone(playSec < TL_INTRO_DUR ? "intro" : "video");
   }, [introAdded, playSec]);

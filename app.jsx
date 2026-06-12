@@ -54,15 +54,21 @@ function scenarioBaseline(scenario) {
   // project. It never fabricates chat — Underlord stays empty until the user
   // talks to it (or uploads through it).
   const flags = (f) => ({ videoAdded: false, fillersRemoved: false, fillerStriking: false,
-                          chaptersAdded: false, rearranged: false, scenesAdded: false, clipsAdded: false, ...f });
+                          chaptersAdded: false, rearranged: false, scenesAdded: false, clipsAdded: false,
+                          introAdded: false, ...f });
   if (scenario === "postUpload") return { tabsById, panes, flags: flags({ videoAdded: true }), convo: [] };
+  // Rough cut already has an intro slide before the video (matches the task copy
+  // for Tasks 5–9, e.g. "an image behind the text in your intro").
   if (scenario === "roughCut")   return { tabsById, panes,
-    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true }), convo: [] };
+    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true, introAdded: true }), convo: [] };
   if (scenario === "clipsAdded") return { tabsById, panes,
-    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true, clipsAdded: true }), convo: [] };
+    flags: flags({ videoAdded: true, fillersRemoved: true, chaptersAdded: true, scenesAdded: true, clipsAdded: true, introAdded: true }), convo: [] };
   return { tabsById, panes, flags: flags(), convo: [] };
 }
 const INITIAL = scenarioBaseline(DEFAULT_SCENARIO);
+// The canvas parks on the video frame by default; Task 5 ("…behind the text in
+// your intro") starts on the intro slide so the participant can see it.
+const INITIAL_PLAY_ZONE = (INITIAL.flags.introAdded && URL_TASK === 5) ? "intro" : "video";
 
 function App() {
   // ---- shell / drawers ----
@@ -141,9 +147,9 @@ function App() {
   const [mediaSeg, setMediaSeg] = useState("project"); // Media browser segment
   // Intro slide (Underlord "Add an intro"): a title slide before the video.
   // playZone tracks which timeline section the playhead sits in.
-  const [introAdded, setIntroAdded] = useState(false);
+  const [introAdded, setIntroAdded] = useState(INITIAL.flags.introAdded);
   const [introBg, setIntroBg] = useState(null);        // CSS background from a Stock tile
-  const [playZone, setPlayZone] = useState("video");   // 'intro' | 'video'
+  const [playZone, setPlayZone] = useState(INITIAL_PLAY_ZONE);   // 'intro' | 'video'
   // Task 8 beat: Underlord "moves" the music bed to 0:00 (timeline applies it).
   const [musicMoved, setMusicMoved] = useState(false);
   const demo = { videoAdded, fillersRemoved, fillerStriking, chaptersAdded, rearranged, scenesAdded, clipsAdded, introAdded, musicMoved };
@@ -502,7 +508,7 @@ function App() {
     setSelection(null); setFx(FX_DEFAULTS); setSsPop(null); setTextLayerVisible(false); setFreeTextVisible(false);
     setSceneLayout("Default Camera");
     setMediaSeg("project"); setCustomComps([]); setCompsOpen(false);
-    setIntroAdded(false); setIntroBg(null); setPlayZone("video");
+    setIntroAdded(b.flags.introAdded); setIntroBg(null); setPlayZone("video");
     setMusicMoved(false); window.DEMO_TEXT_STYLE = null; taskBeatFired.current = false;
     setTlOpen(false);
     setView("editor");
